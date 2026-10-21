@@ -860,11 +860,20 @@ class ZeekrGricApiClient:
             "service_id": service_id,
             "command": command,
         }]
-        result = await self._post(
-            self._tsp_host(vin),
-            "/ms-remote-control/api/v1.0/remoteControl/control",
-            payload,
-        )
+        # Start / stop charging use the same RCS payload as elsewhere, but the
+        # Chinese app posts them to ``ms-charge-manage``; sent to the generic
+        # remote-control route they are rejected with ``1051P004`` (parameter
+        # is incorrect).  Captured from the app on 2026-10-21.
+        param_keys = {
+            p.get("key") for p in payload["setting"]["serviceParameters"]
+            if isinstance(p, dict)
+        }
+        if service_id == "RCS" and param_keys & {"rcs.restart", "rcs.terminate"}:
+            path = "/ms-charge-manage/api/v1.0/charge/control"
+        else:
+            path = "/ms-remote-control/api/v1.0/remoteControl/control"
+        self._command_attempts[-1]["path"] = path
+        result = await self._post(self._tsp_host(vin), path, payload)
         self._command_attempts[-1]["code"] = result.get("code")
         self._command_attempts[-1]["msg"] = result.get("msg")
         if not _accepted(result):

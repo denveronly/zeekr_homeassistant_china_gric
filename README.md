@@ -1,216 +1,254 @@
-> **English fork** of [RexzeLu/zeekr_ha](https://github.com/RexzeLu/zeekr_ha): entity names, select options and error messages are translated to English. Install in HACS as a custom repository: `https://github.com/denveronly/zeekr_homeassistant_china_gric` (Integration). Strings matching the car's / server's Chinese replies are intentionally left unchanged.
+# Zeekr EV · Home Assistant integration (China / GRIC)
 
-# 极氪 Zeekr EV · Home Assistant 集成
+> **English fork** of [RexzeLu/zeekr_ha](https://github.com/RexzeLu/zeekr_ha) for Zeekr cars on the
+> **Chinese app / mainland China backend**. Entity names, select options, error messages and this README
+> are translated to English. Strings that are matched against the car's or server's Chinese replies are
+> intentionally left unchanged. Original Chinese README: [`README.zh-CN.md`](README.zh-CN.md).
 
-把极氪汽车接进 Home Assistant。集成有两条登录通道，**能不能控车完全取决于选了哪一条**。
+Brings your Zeekr into Home Assistant. The integration has two login channels, and **which one you
+pick decides whether you can control the car**.
 
-## 我该用哪条通道？（这决定能不能控车）
+## Which channel should I use? (This decides whether you get control)
 
-| 通道 | 能做什么 | 需要什么 |
+| Channel | What it can do | What you need |
 | --- | --- | --- |
-| **短信验证码（+86）** | **只能看车辆状态**：电量、续航、位置、里程、门锁/车窗/后备箱状态、胎压、车况上报时间…… **不能控车**（原因见下） | 手机号 + 一条短信验证码 |
-| **GRIC 令牌** | **看状态 + 控车**：空调、锁车、车窗遮阳帘、闪灯鸣笛、充电、座椅…… 和手机 App 走的是同一条通道 | 从 App 取出的 `refreshToken` + `x-vehicle-identifier` |
+| **SMS code (+86)** | **Status only**: battery, range, location, odometer, lock/window/trunk state, tire pressure, last report time… **No control** (see below) | Phone number + one SMS code |
+| **GRIC token** | **Status + control**: climate, locks, windows and sunshade, flash/horn, charging, seats… The same channel the phone app uses | `refreshToken` + `x-vehicle-identifier` taken from the app |
 
-> **想控车就只能用 GRIC 通道 —— 车主账号也一样。**
-> 短信通道走的是老的 SNC 三层网关：**读车况没问题**，但**下发指令的接口被网关按接口粒度
-> 拒绝（`079001 [SDK]此接口未被授权`）**，兜底的老管道会回「操作成功」却**根本不执行** ——
-> 表现就是「点了没反应，车也不动」，而且不会报错。这跟账号是不是车主无关：**新版 App
-> 自己也已经不走那条通道了**（它本地只存 GRIC 令牌，控车走的就是 GRIC）。
+> **Control only works over GRIC, also for the owner account.**
+> The SMS channel goes through the old SNC gateway. **Reading status works**, but the gateway
+> **rejects every command endpoint** (`079001 [SDK] interface not authorized`), and the legacy
+> fallback pipe answers "success" **without executing anything**: you tap, nothing happens, no error.
+> This has nothing to do with being the owner: **the current app itself no longer uses that channel**
+> (it only stores GRIC tokens and sends commands over GRIC).
 
-> 邮箱 / 密码登录在中国大陆不可用，本集成不提供该方式。
+> E-mail / password login is not available in mainland China and is not supported.
 
-## 能做什么
+## Features
 
-| 平台 | 内容 |
+| Platform | Entities |
 | --- | --- |
-| `device_tracker` | 车辆位置（GPS） |
-| `sensor` | 电量、续航、总里程、车速、能耗、车内/外温度、空调设定温度、充电功率/电压/电流、预计充满时间、充电上限、12V 电瓶、保养剩余里程/天数、四轮胎压与胎温、车况上报时间 |
-| `binary_sensor` | 充电中、已插枪、四门 / 后备箱 / 前机盖、四车窗、胎压报警 |
-| `lock` | 车门锁、充电口盖 |
-| `switch` | 充电、前风挡除霜、方向盘加热、哨兵模式、充电计划、出行计划、出行空调 |
-| `climate` | 空调（开关 + 温度 + 预设「标准 / 极速降温 / 极速升温」+ 运行时长） |
-| `cover` | 遮阳帘、所有车窗 |
-| `select` | 主/副驾与后排座椅加热、主/副驾座椅通风（关闭 / 1–3 档） |
-| `number` | 充电上限（50–100%）、空调运行时长（1–60 分钟） |
-| `button` | 闪灯、鸣笛并闪灯、关闭驻车舒适、极速降温、极速升温、立即刷新 |
-| `time` / `datetime` | 充电计划开始 / 结束时间、预约出发时间 |
+| `device_tracker` | Vehicle location (GPS) |
+| `sensor` | Battery level, range, odometer, speed, average consumption, interior/exterior temperature, climate set temperature, charging power/voltage/current, estimated full-charge time, charge limit, 12V battery, service distance/days remaining, tire pressure and tire temperature (×4), last status report |
+| `binary_sensor` | Charging, charger plugged in, 4 doors / trunk / hood, 4 windows, tire pressure warnings |
+| `lock` | Door lock, charge port lid |
+| `switch` | Charging, windshield defrost, steering wheel heating, sentry mode, charging schedule, departure schedule, departure climate |
+| `climate` | Climate (on/off + temperature + presets "standard / rapid cooling / rapid heating" + run duration) |
+| `cover` | Sunshade, all windows |
+| `select` | Seat heating (driver, passenger, rear), seat ventilation (driver, passenger): Off / Level 1–3 |
+| `number` | Charge limit (50–100 %), climate run duration (1–60 min) |
+| `button` | Flash lights, horn and flash, turn off parking comfort, rapid cooling, rapid heating, refresh now |
+| `time` / `datetime` | Charging schedule start / end, scheduled departure time |
 
-> **短信通道下，上表只有「状态类」能用。** `sensor` / `binary_sensor` / `device_tracker`
-> 正常显示；`lock` / `switch` / `climate` / `cover` / `select` / `number` / `button` /
-> `time` / `datetime` 这些**控制类**实体点了不会生效（网关拒绝，见开头说明）。要控车就换 GRIC。
+> **On the SMS channel only the status entities work.** `sensor` / `binary_sensor` / `device_tracker`
+> show data; the **control** entities (`lock` / `switch` / `climate` / `cover` / `select` / `number` /
+> `button` / `time` / `datetime`) do nothing (the gateway rejects them, see above). Use GRIC for control.
 
-## 安装
+## Installation
 
-**HACS**：集成 → 右上角菜单 → 添加自定义仓库 → 搜索 “Zeekr EV” → 安装 → 重启 HA。
-**手动**：把 `custom_components/zeekr_ev` 整个目录放到 HA 配置目录的
-`config/custom_components/` 下 → 重启 HA。
+**HACS**: HACS → ⋮ → Custom repositories → `https://github.com/denveronly/zeekr_homeassistant_china_gric`,
+type **Integration** → search "Zeekr EV" → Download → restart Home Assistant.
 
-依赖 `pycryptodome>=3.20.0`（已声明，HA 会自动装）。
-集成图标只在 **HA ≥ 2026.3** 才显示，更早版本不影响任何功能。
+**Manual**: copy the whole `custom_components/zeekr_ev` folder into your HA `config/custom_components/`
+→ restart Home Assistant.
 
-## 配置
+Requires `pycryptodome>=3.20.0` (declared; HA installs it automatically).
+The integration icon only shows on **HA ≥ 2026.3**; older versions work fine without it.
 
-「设置 → 设备与服务 → 添加集成」→ 搜索 **Zeekr EV** → 选通道。
+## Configuration
 
-### 短信验证码（只读）
+Settings → Devices & services → Add integration → search **Zeekr EV** → pick a channel.
 
-选国家代码（默认 `+86`）→ 填手机号 → 填入收到的验证码 → 完成。
-凭据会保存在配置项里并自动续期，以后不用再收验证码。
+### SMS code (read-only)
 
-⚠️ **这条通道只能查看车辆状态，不能控车**（原因见开头）。如果你要控车，请改用下面的 GRIC。
+Choose the country code (default `+86`) → enter the phone number → enter the SMS code → done.
+Credentials are stored in the config entry and renewed automatically; no further SMS codes needed.
 
-> 建议用一个**独立的极氪账号**并把车辆共享给它，避免和手机 App 互相挤下线。
+⚠️ **This channel can only read status, it cannot control the car** (see above). Use GRIC for control.
 
-### GRIC 令牌（看状态 + 控车）
+> Use a **separate Zeekr account** and share the car to it, so HA and the phone app don't keep
+> logging each other out.
 
-需要两个值，都来自**同一台手机上、同一个能控车的 App 会话**：
+### GRIC token (status + control)
 
-| 值 | 是什么 | 从哪里取 |
+You need two values, both from **the same app session on one device that can control the car**:
+
+| Value | What it is | Where to get it |
 | --- | --- | --- |
-| **`refreshToken`** | 一段很长的 JWT（约 900 字符，三段用 `.` 分隔，以 `eyJ` 开头）。GRIC 只凭它就能不断换出新令牌，等于这个账号的接入权。 | App 的「刷新令牌」请求：**响应体**或**请求体**里的 `refreshToken`（见下） |
-| **`x-vehicle-identifier`** | 44 字符的 base64（以 `=` 结尾），是**这辆车**的密文标识。读车况和下发指令都要带它。 | 任意一条带车的 GRIC 请求的**请求头**（见下） |
+| **`refreshToken`** | A long JWT (~900 characters, three parts separated by `.`, starts with `eyJ`). GRIC can keep issuing new tokens from it, so it is effectively access to the account. | Response body of the app's login / token request (see below) |
+| **`x-vehicle-identifier`** | A 44-character base64 value (ends with `=` or `_`), the encrypted identifier of **this car**. Needed for reading status and sending commands. | Request headers of any GRIC request that involves the car (see below) |
 
-> `x-vehicle-identifier` 是 **App 运行内存里现算出来的**：手机存储（mmkv / shared_prefs /
-> 日志）里根本没有，也无法离线算出来（密钥在 App 的原生库里，运行时才装配）。
-> ⇒ **只能从一条真实抓到的请求里抄**，抄一次就一直有效（它跟着车走，同一辆车不会变）。
-> 换账号时这个值**可以继续沿用**（它是按车的，不是按账号的）。
+> `x-vehicle-identifier` is **computed in the app's memory at runtime**: it is not in the phone's
+> storage (mmkv / shared_prefs / logs) and cannot be derived offline (the key is assembled inside the
+> app's native library). ⇒ **You can only copy it from a real captured request.** Copy it once and it
+> keeps working (it belongs to the car and never changes). It also stays valid if you switch accounts.
 
-#### 怎么取这两个值
+#### How to get both values
 
-**方法 A：手机抓包（最省事，不需要电脑，一次拿到两个值）**
+> **Tip:** use a **second Zeekr account** that the car is shared to, and capture from that one.
+> After setup, Home Assistant owns that account's session, so don't log into it anywhere else.
 
-1. 手机装一个支持 **VPN 模式**的抓包 App（**Reqable**、HttpCanary / 小黄鸟 同类皆可）。
-2. 首次打开时按它的引导把 **CA 证书**装上，装成「VPN 和应用」（用户证书即可）。
-3. 开始抓包 → 打开极氪 App → 进车辆页**做一次车控**（闪灯 / 锁车都行）。
-4. 回到抓包列表，筛 **`gric-zhf-api.geely.com`**（或任何 `gric-` 开头的域名）：
-   - **`x-vehicle-identifier`**：随便点开一条带这辆车的请求（车况、心跳、车控都行），
-     在**请求头**里找到 `x-vehicle-identifier`，整行复制 → 表单第 2 个框。
-   - **`refreshToken`**：找到
-     `POST https://gric-api.geely.com/ms-midground-user/api/v1.0/user/auth/refresh/token`，
-     把 **响应体**里的 `data.refreshToken` 复制出来 → 表单第 1 个框
-     （响应里同时有个更长的 `accessToken`，**别抄错**：要的是 `refreshToken`）。
-     如果列表里没有这条请求，就去 App 里**退出登录再重新登录**一次，它一定会发。
-     （只有请求体看不到响应时，抄请求体里的 `refreshToken` 也行 —— 它在那次刷新前一直有效。）
+**Method A: capture app on Android (phone or emulator, no root needed)**
 
-**方法 B：电脑 + mitmproxy（手机和电脑连同一个 WiFi）**
+1. Install a capture app with a **VPN mode**: **Reqable** (or HttpCanary and similar).
+2. Install its **CA certificate** as a user certificate ("VPN and apps"). If Reqable's "save to
+   Downloads" doesn't show the file, it is in `Download/Reqable/` as `<hash>.0`. Copy it to
+   `Download/reqable-ca.crt` and install it via Settings → Security → Encryption & credentials →
+   Install a certificate → CA certificate.
+3. **Important:** the Zeekr app pins certificates on `*.zeekrlife.com`, so login fails with
+   "network busy" while capture is on. In Reqable add an **SSL Proxying** rule in **Bypass Mode** for
+   `*.zeekrlife.com`. Only `*.geely.com` needs to be decrypted.
+4. Start capture → open the Zeekr app → go to the car page and **send one command** (flash lights or lock).
+5. In the capture list filter on **`gric`**:
+   - **`x-vehicle-identifier`**: open any request to a `gric-*.geely.com` host that involves the car
+     (status, heartbeat `app/hb`, command), find `x-vehicle-identifier` in the **request headers**,
+     copy the value → field 2 of the setup form.
+   - **`refreshToken`**: **log out of the app and log in again** while capturing. Then find
+     `POST https://gric-api.geely.com/ms-midground-user/api/v1.0/user/auth/get/token`
+     (or `.../auth/refresh/token`) and copy `data.refreshToken` from the **response body**
+     → field 1 of the form. Don't copy the `accessToken` next to it, and don't copy `authCode`
+     from the request body.
+6. **Close the Zeekr app right away** (or `adb shell am force-stop com.zeekrlife.mobile`) so it
+   doesn't rotate the token before Home Assistant uses it.
 
-步骤（装 mitmproxy → 手机设代理 → 手机装 CA → 手机操作一次 → 看流量）写在
-[`docs/zeekr_capture_playbook.md`](docs/zeekr_capture_playbook.md)。能拿到和方法 A 相同的东西。
+Easy ways to force a fresh login on an emulator: `adb shell pm clear com.zeekrlife.mobile`
+(wipes the app's data in the emulator only).
 
-**方法 C：root 手机（只能拿到 `refreshToken`）**
+**Method B: computer + mitmproxy (phone and computer on the same Wi-Fi)**
+
+The steps (install mitmproxy → set the proxy on the phone → install the CA → do one action in the app
+→ read the traffic) are in [`docs/zeekr_capture_playbook.md`](docs/zeekr_capture_playbook.md)
+(Chinese). It gets you the same values as method A.
+
+**Method C: rooted phone (gets only the `refreshToken`)**
 
 ```bash
 python tools/zeekr_device_pull.py --gric --write-tokens
 ```
 
-走 adb 只读拉取 App 数据，直接把里面**最新**的一对 GRIC 令牌写进本机令牌文件（不触发重登）。
-但如前所述 **`x-vehicle-identifier` 不在手机存储里**，所以这条路仍需配合方法 A / B 抓一次那些请求头。
+Reads the app's data read-only over adb and writes the **latest** GRIC token pair into the local token
+file (without triggering a new login). As noted above, **`x-vehicle-identifier` is not in the phone's
+storage**, so you still need method A or B once to capture the request header.
 
-#### 以前取过、本机还存着
+#### If you captured them before and still have them locally
 
-一条命令就能重新导出成可直接粘贴的文件（写到桌面 `zeekr_ha_表单填写.txt`）：
+One command exports them again into a file ready for pasting (written to the desktop):
 
 ```bash
-python tools/zeekr_gric_token.py form          # 导出
-python tools/zeekr_gric_token.py form --print  # 同时在终端打印明文
+python tools/zeekr_gric_token.py form          # export
+python tools/zeekr_gric_token.py form --print  # also print in plain text in the terminal
 ```
 
-#### 填完之后
+#### After you submit the form
 
-> ⚠️ **令牌是单会话的**：App 上用哪个账号、HA 就跟着哪个账号。保存后 HA 会立刻用它换一对
-> 新令牌，那份旧的随之作废；App 那边的会话也会掉线（属正常现象，需要时重新短信登录一次）。
-> ⚠️ **同一辆车在 HA 里只能有一个配置项** —— 换账号前先删掉旧条目（集成会拒绝两个条目管同一辆车）。
+> ⚠️ **Tokens are single-session**: HA follows whichever account you captured. Right after saving, HA
+> exchanges the token for a new pair and the old one becomes invalid; the app's session for that
+> account is signed out too. That is expected. Log in by SMS again only if you need to.
+> ⚠️ **One car can only have one config entry in HA.** Delete the old entry before switching accounts
+> (the integration refuses two entries for the same car).
 
-一个账号名下有多辆车时，请**每辆车各添加一个配置项**（标识只属于一辆车）。
+If one account has several cars, **add one config entry per car** (each identifier belongs to one car).
 
-### 令牌会过期吗（GRIC）
+### Do the tokens expire? (GRIC)
 
-正常情况下不用管：access 7 天、refresh 30 天，集成提前 24 小时自动换 access，
-换的时候服务端会把 refresh 也续满 30 天 —— **HA 一直在线就永不过期**。
+Normally no action needed: access token 7 days, refresh token 30 days. The integration renews the
+access token 24 hours early, and the server extends the refresh token to 30 days each time, so
+**as long as HA stays online it never expires**.
 
-只有两种情况会断：**HA 连续离线超过 30 天**，或**这个账号又在手机 App 上登录了一次**
-（同一会话只有一个持有者，会把 HA 这边顶掉）。断链时实体变「不可用」并弹出
-「需要重新认证」，点它重新填一次值即可，不用删集成。
+It only breaks in two cases: **HA is offline for more than 30 days in a row**, or **the same account
+logs in on the phone app again** (only one holder per session, so HA gets kicked out). Then the
+entities become unavailable and HA shows "Reconfigure / re-authentication required". Click it and
+paste the values again; no need to delete the integration.
 
-## 选项（「配置 → 选项」）
+## Options (Configure → Options)
 
-- **轮询间隔（自适应）**：默认 **1 分钟**，是**最快档**而不是固定值。车况连续没变化时
-  间隔自动翻倍（1 → 2 → 4 → 8 → 15 分钟封顶，且不会比你填的更慢）；车况一有变化、
-  车在充电 / 行驶 / 开空调、或你刚下发过指令，立刻回到最快档。
-  读的是服务端缓存的上报值，**不会唤醒车辆**，所以缩短轮询不伤车。
-- **允许下发控制指令**：总开关，关掉后所有写操作都被拒绝（只读）。
-  ⚠️ 短信通道下这个开关没有意义 —— 那条通道本来就发不出指令。
-- **座椅加热 / 通风、空调、方向盘加热时长**：默认 15 分钟。车上那个「空调运行时长」
-  实体决定**下一次**开空调用多久，改它本身不会给车发指令。
-- **这辆车没有的功能**：勾选后对应实体**不会再创建**（重载集成生效）。
-  网关只说「这车支持座椅加热」，不说后排有没有，所以只能由你告诉集成 ——
-  比如四座版没有后排座椅加热，就把「座椅 · 左后加热 / 右后加热」勾掉。
-  ⚠️ 已经建出来的条目不会自动消失，需在「设置 → 设备与实体 → 实体」里手动删掉。
+- **Polling interval (adaptive)**: default **1 minute**, which is the **fastest** step, not a fixed
+  value. When the status doesn't change, the interval doubles (1 → 2 → 4 → 8 → max 15 min, never
+  slower than what you set). As soon as something changes, the car is charging / driving / running
+  climate, or you just sent a command, it returns to the fastest step. It reads the values cached on
+  the server and **does not wake the car**, so a short interval doesn't drain the battery.
+- **Allow control commands**: master switch. When off, every write is refused (read-only).
+  ⚠️ Has no effect on the SMS channel, which cannot send commands anyway.
+- **Seat heating / ventilation, climate, steering wheel heating duration**: default 15 minutes. The
+  "Climate run duration" entity sets how long the **next** climate start lasts; changing it does not
+  send anything to the car.
+- **Features this car doesn't have**: ticked features **won't be created** (takes effect after
+  reloading the integration). The gateway only says "this car supports seat heating", not whether the
+  rear seats have it, so you have to tell the integration. For example, a 4-seat version without rear
+  seat heating: tick "Seat heating rear left / rear right".
+  ⚠️ Entities that already exist don't disappear automatically; delete them under
+  Settings → Devices & services → Entities.
 
-## 服务
+## Actions
 
-| 服务 | 说明 |
+| Action | Description |
 | --- | --- |
-| `zeekr_ev.refresh` | 立即重新获取车辆列表与状态 |
-| `zeekr_ev.set_climate` | 开 / 关空调并指定运行时长与温度（仅 GRIC 通道有效） |
-| `zeekr_ev.dump_raw_status` | 导出网关原始报文（不含令牌），排查用 |
+| `zeekr_ev.refresh` | Re-read the vehicle list and status now |
+| `zeekr_ev.set_climate` | Turn climate on/off with duration and temperature (GRIC channel only) |
+| `zeekr_ev.dump_raw_status` | Dump the raw gateway payload (without tokens) for troubleshooting |
 
 ```yaml
 action: zeekr_ev.set_climate
 data:
-  duration: 10      # 分钟，1–60；不传就用当前实体上的值
-  temperature: 24   # 可选；不传沿用车上次设定
-  enabled: true     # false = 关空调
+  duration: 10      # minutes, 1–60; defaults to the current entity value
+  temperature: 24   # optional; defaults to the car's last setting
+  enabled: true     # false = climate off
 ```
 
-## 常见问题
+## FAQ
 
-**实体显示「不可用」** —— 先确认「设置 → 设备与服务」里**只有一个**极氪条目。
-实体的唯一 ID 是按车辆生成的、与账号无关，两个配置项会争抢同一组 ID：HA 只保留先注册
-的那组，其余变成「恢复的实体」并显示不可用。删掉多余配置项 → 在实体页筛掉残留 → 重启 HA。
+**Entities show "unavailable".** First make sure there is **only one** Zeekr entry under
+Settings → Devices & services. Unique IDs are generated per car, not per account, so two entries fight
+over the same IDs: HA keeps the first one and the rest become "restored" and unavailable. Delete the
+extra entry → remove leftovers on the Entities page → restart HA.
 
-**点了开关 / 按钮没反应，车也不动** —— 先看用的哪条通道：**短信通道天生发不出指令**
-（网关按接口粒度拒绝 `079001`，兜底的老管道回「操作成功」却根本不执行），
-换成 **GRIC 通道**即可，车主账号也一样（见开头）。
-已经是 GRIC 通道的话，就是下面这条 —— 指令没被车端确认。
+**I press a switch / button and nothing happens.** Check the channel first: **the SMS channel can't
+send commands** (the gateway rejects them with `079001`, the legacy pipe answers "success" but does
+nothing). Switch to **GRIC**, also for the owner account (see the top). If you're already on GRIC,
+see the next items: the car didn't confirm the command.
 
-**在手机上改了设置，HA 过很久才看到** —— 延迟 = 车端上报 + HA 轮询。车熄火休眠后可能
-几小时才上报一次，这是车端省电设计，调轮询没用。看传感器「**车况上报时间**」：
-它跟着你的操作一起变，说明车上报很快，最多再等一个轮询周期；它比你的操作晚很多，
-就是车还没上报。
+**I changed something in the phone app and HA shows it much later.** Delay = car reporting + HA
+polling. A parked, sleeping car may report only every few hours to save power; a shorter poll interval
+doesn't help. Look at the **Last status report** sensor: if it changes right after your action, the car
+reported quickly and you wait at most one poll cycle; if it's much older than your action, the car
+hasn't reported yet.
 
-**空调温度跟手机设的不一样** —— **手机上设定的温度 HA 读不到，这是车端限制**：
-远程设定的温度只写进车里，不回传车况接口；车况里那个值是**车机（中控屏）的设定值**。
-本集成的处理是：你没在 HA 设过温度就跟随车机值；**一旦你在 HA 设过，就以 HA 的值为准**，
-不会再被车机值顶回去。App 的档位是 `LO` — 16…28 — `HI`，实体范围已放宽到 15–30 覆盖两端。
+**The climate temperature differs from what I set in the app.** **HA cannot read the temperature set
+in the phone app; that's a car limitation.** A remotely set temperature is written to the car only and
+not returned by the status API; the value in the status is the **head unit's** setting. The integration
+follows the head unit value until you set a temperature in HA; **after that HA's value wins** and isn't
+overwritten. The app's range is `LO` — 16…28 — `HI`; the entity allows 15–30 to cover both ends.
 
-**「极速降温 / 极速升温」是真的极速模式吗** —— 是**近似实现**：车端确实有这个模式，
-但进入它的指令参数至今没有抓到过，已知实现里空调只有开关 / 温度 / 时长三个参数。
-这里的做法是**把设定温度打到刻度两端**（15 / 30 ℃），「风量拉满」等动作无法表达，
-HA 也显示不了它当前是否在跑。
+**Are "Rapid cooling / Rapid heating" the real fast modes?** They're an **approximation**. The car does
+have such a mode, but the command parameters for it have never been captured; the known climate command
+only has on/off, temperature and duration. So these buttons **set the temperature to the ends of the
+scale** (15 / 30 °C). "Max fan" and similar can't be expressed, and HA can't show whether the mode is
+running.
 
-**按下开关后状态先变、又跳回去了** —— 车是云端唤醒的，指令发出后要 10~30 秒
-（GRIC 更久）才生效。集成会先立刻显示目标状态，再按 10 / 30 / 60 秒回查；
-**90 秒内车没确认就放弃、回落到真实状态**。所以跳回去 = 指令没生效。
-若一直失败，先看选项里「允许下发控制指令」是否开启，再看日志里
-`custom_components.zeekr_ev` 的报错。
+**The state changes after pressing a switch and then jumps back.** The car is woken up via the cloud;
+a command takes 10–30 seconds to take effect (GRIC can take longer). The integration shows the target
+state immediately, then re-checks after 10 / 30 / 60 seconds; **if the car hasn't confirmed within 90
+seconds it gives up and shows the real state**. So jumping back = the command didn't take effect.
+If it keeps failing, check that "Allow control commands" is enabled in the options, then look for
+errors from `custom_components.zeekr_ev` in the log.
 
-**`x-vehicle-identifier` 填错了会怎样** —— 表单会当场回
-「车辆标识校验失败」（集成在创建配置项前先实测一次车况），不会留到第一次轮询才报错。
-表单提示「标识值不是该车的密文」（`00A06 Decrypt X-VEHICLE-IDENTIFIER failed`）时，
-说明抄的不是这辆车的值。
+**What if `x-vehicle-identifier` is wrong?** The form tells you right away with a vehicle identifier
+validation error (the integration tests reading the car status before creating the entry), not at the
+first poll. If it says the identifier is not this car's ciphertext
+(`00A06 Decrypt X-VEHICLE-IDENTIFIER failed`), you copied a value that belongs to another car.
 
-**打开「配置」提示「无法加载配置向导 / 500」** —— 升级到 **0.4.7 或更高版本**即可
-（旧版本的选项表单必崩：`config_flow.py` 用了未导入的 `cv`）。若新版仍打不开，
-请到「设置 → 系统 → 日志」搜索 `zeekr`，把 traceback 贴在 issue 里。
+**Opening "Configure" says "Config flow could not be loaded / 500".** Update to **0.4.7 or newer**
+(older versions' options form always crashed: `config_flow.py` used `cv` without importing it). If it
+still fails, search the log under Settings → System → Logs for `zeekr` and post the traceback in an
+issue.
 
-**反馈问题请附诊断**：「设置 → 设备与服务 → 极氪 → 下载诊断信息」，或
-「开发者工具 → 操作 → `zeekr_ev.dump_raw_status`」。诊断里的 VIN、车牌请自行打码。
+**When reporting a problem, attach diagnostics**: Settings → Devices & services → Zeekr → Download
+diagnostics, or Developer tools → Actions → `zeekr_ev.dump_raw_status`. Mask the VIN and plate number.
 
-## 许可
+## License
 
 MIT
 
-> 协议细节、网关与签名、字段校准、错误码等开发向内容见
-> [`docs/troubleshooting.md`](docs/troubleshooting.md)；
-> 抓包取值的详细操作见 [`docs/zeekr_capture_playbook.md`](docs/zeekr_capture_playbook.md)。
+> Protocol details, gateways and signing, field calibration and error codes (developer docs, Chinese)
+> are in [`docs/troubleshooting.md`](docs/troubleshooting.md); detailed capture steps are in
+> [`docs/zeekr_capture_playbook.md`](docs/zeekr_capture_playbook.md).

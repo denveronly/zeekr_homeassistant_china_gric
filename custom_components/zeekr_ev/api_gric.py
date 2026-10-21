@@ -289,6 +289,15 @@ def _accepted(result: Any) -> bool:
     return str(result.get("code") or "") == _SUCCESS or result.get("success") is True
 
 
+def _hhmm(value: Any) -> str:
+    """Normalise a time to the ``HH:MM`` the charge-manage API expects."""
+    text = str(value or "").strip()
+    parts = text.split(":")
+    if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
+        return f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+    return text
+
+
 def _result_brief(result: Any) -> str:
     if not isinstance(result, dict):
         return str(result)[:160]
@@ -913,16 +922,20 @@ class ZeekrGricApiClient:
         reports the gateway's own message.
         """
         await self._require_access_token()
+        # Body captured from the Chinese app (2026-10-21).  On / off differ only
+        # in ``command``; ``bizType`` / ``target`` / ``timerId`` are constant for
+        # the single charging timer the app exposes.  The SNC-style body
+        # (vin / bcCycleActive / bcTempActive) is rejected with 1051P004.
         result = await self._post(
             self._tsp_host(vin),
             "/ms-charge-manage/api/v1.0/charge/setChargingPlan",
             {
-                "vin": vin,
+                "bizType": "6",
                 "command": command,
-                "startTime": start_time,
-                "endTime": end_time,
-                "bcCycleActive": bc_cycle,
-                "bcTempActive": bc_temp,
+                "startTime": _hhmm(start_time),
+                "endTime": _hhmm(end_time),
+                "target": "2",
+                "timerId": "2",
             },
         )
         if not _accepted(result):

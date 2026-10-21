@@ -1,206 +1,206 @@
-# 抓包作战手册 — 拿到 App 真正使用的令牌
+# Capture playbook — get the token the App actually uses
 
-> 目的：`[SDK]` 门禁按**令牌的客户端身份**判定，我们的令牌（`azp=user_center_client_phone`、`scope=""`）
-> 被拒，而同一账号在 App 里能正常控车。所以 App 一定带了**另一份凭据**。
-> 静态逆向已到尽头（dex 里没有 `/snc/`、`/vcl/` 这类明文的 SDK 路径；URL 是代码拼的），
-> **唯一能给出确定答案的手段是抓一次 App 的真实控制请求。**
+> Goal: the `[SDK]` access control decides by the **token's client identity**; our token (`azp=user_center_client_phone`, `scope=""`)
+> is rejected, while the same account can control the car normally in the App. So the App must be carrying **another credential**.
+> Static reverse engineering has reached a dead end (there are no plaintext SDK paths like `/snc/`, `/vcl/` in the dex; the URLs are assembled in code),
+> **the only way to get a definitive answer is to capture one real control request from the App.**
 
 ---
 
-## 0. 先决条件（选定后不要再犹豫）
+## 0. Prerequisites (once chosen, do not keep second-guessing)
 
-> **⚠️ 绝对不要把账号登进模拟器**：GW1 JWT 里 `accountLoginInfoDTO.logoutOtherDevices = true`
-> 已被实测确认 ⇒ **模拟器一登录，用户手机上的 App 立刻被顶下线**。
-> 本场景必须**直接抓用户自己手机上的流量**。
+> **⚠️ Absolutely do not log the account into an emulator**: `accountLoginInfoDTO.logoutOtherDevices = true` in the GW1 JWT
+> has been confirmed by testing ⇒ **the moment the emulator logs in, the App on the user's phone is immediately kicked offline**.
+> In this scenario you must **capture the traffic directly on the user's own phone**.
 >
-> **好消息**：SNC SDK 自带 `TrustAllCerts`
-> （`com/geely/snc/network/http/auth/TrustAllCerts`、
-> `com/zeekr/snc/vehicle/core/net/http/auth/TrustAllCerts`，均为 **[dex]** 确认）
-> ⇒ 车控请求**很可能不校验证书**，因此**不需要 root、也不需要去证书固定**。
-> 用户级 CA 大概率就够。
+> **Good news**: the SNC SDK ships its own `TrustAllCerts`
+> (`com/geely/snc/network/http/auth/TrustAllCerts`,
+> `com/zeekr/snc/vehicle/core/net/http/auth/TrustAllCerts`, both confirmed **[dex]**)
+> ⇒ the car-control request **very likely does not validate the certificate**, so **neither root nor certificate unpinning is needed**.
+> A user-level CA is most likely enough.
 
-| 项 | 说明 |
+| Item | Description |
 | --- | --- |
-| 用哪个账号 | **`16620192335`**（HA 那个号）。它**不是**你主力机上的账号 ⇒ 抓包不会打扰你日常使用；代价是期间 HA 的车控会话被顶掉，随时可恢复。 |
-| 要抓什么 | **一次最简单的车控动作**：闪灯 / 鸣笛 / 开关空调任选一个。只要一次成功/失败的请求就够。 |
-| 交付什么 | 抓包文件（`.har` 或 `.flow`）**或**截图里那条请求的 URL / 请求头 / body。我会用 `tools/zeekr_capture_triage.py` 直接解析。 |
+| Which account to use | **`16620192335`** (the one HA uses). It is **not** the account on your main phone ⇒ capturing will not disturb your daily use; the cost is that HA's car-control session gets kicked during this time, recoverable at any point. |
+| What to capture | **one of the simplest car-control actions**: flash lights / honk / toggle AC, any one. A single successful/failed request is enough. |
+| What to deliver | the capture file (`.har` or `.flow`) **or** a screenshot of that request's URL / headers / body. I will parse it directly with `tools/zeekr_capture_triage.py`. |
 
 ---
 
-## 0.5 方案 0（人在外面也能做）：手机自带抓包 App，**不需要电脑、不需要同一网络**
+## 0.5 Option 0 (can be done even when away from home): a phone capture App, **no computer and no shared network needed**
 
-适用于「用户不在家 / 只想用手机」的场景。走 VPN 模式，**手机用自己的流量也能抓**。
+For the "user is not home / only wants to use the phone" scenario. Using VPN mode, **the phone can capture even on its own cellular data**.
 
-1. 手机装一个支持 VPN 模式抓包的 App（**Reqable**、HttpCanary/小黄鸟 同类皆可）。
-2. 首次启动会引导**安装它的 CA 证书**（装成「VPN 和应用」/用户证书即可）——
-   本 App 大概率够用，因为车控段走 SNC SDK 的 `TrustAllCerts`。
-3. 开始抓包 → 打开极氪 App → **做一次车控（闪灯 / 锁车）**。
-4. 在抓包列表里找 **`snc-tsp-api.zeekrlife.com`** 的请求（车控那一条），点进去。
-5. **截图给我这三样**：
-   - **请求头**（要能看到完整的 `Authorization`、`X-APP-ID`、`X-VIN` 及其它 `X-*`）；
-   - **请求体**（那段 JSON）；
-   - 请求行（`POST` + 完整路径）。
+1. Install a capture App that supports VPN mode on the phone (**Reqable**, HttpCanary/小黄鸟 (Little Yellow Bird) and similar all work).
+2. On first launch it will guide you to **install its CA certificate** (install it as a "VPN and apps" / user certificate) —
+   this App is most likely sufficient, because the car-control segment goes through the SNC SDK's `TrustAllCerts`.
+3. Start capturing → open the Zeekr App → **do one car-control action (flash lights / lock)**.
+4. In the capture list find the request to **`snc-tsp-api.zeekrlife.com`** (the car-control one) and tap into it.
+5. **Screenshot these three things for me**:
+   - the **request headers** (I need to see the full `Authorization`, `X-APP-ID`, `X-VIN` and the other `X-*`);
+   - the **request body** (that JSON);
+   - the request line (`POST` + full path).
 
-> 我需要的就是「App 到底带了什么」。拿到 `Authorization` 我就能解出它的 `azp`/`scope`，
-> 与我们的 `user_center_client_phone` / `""` 一对比，答案立刻出来。
+> What I need is "what the App actually carried". Once I have the `Authorization` I can decode its `azp`/`scope`,
+> compare it with our `user_center_client_phone` / `""`, and the answer comes out immediately.
 
 ---
 
-## 1. 方案 A（推荐，人在家时用）：抓用户自己手机的流量（免 root）
+## 1. Option A (recommended, use when at home): capture the user's own phone traffic (no root)
 
-**一键启动（推荐）**：
+**One-command start (recommended)**:
 
 ```bash
 cd /d/zeekr_ha
 C:/Users/rexze/.workbuddy/binaries/python/versions/3.13.12/python.exe tools/zeekr_capture_start.py
-# 若 App 其它模块严格校验证书，改用只代理极氪域名：  ... --zeekr-only
+# If other App modules strictly validate certificates, switch to proxying only the Zeekr domains:  ... --zeekr-only
 ```
 
-脚本会自动检测本机局域网 IP、绑定并启动代理、把手机侧步骤连 IP 一起打印出来。
-以下参数表供手工操作时对照：
+The script automatically detects the local LAN IP, binds and starts the proxy, and prints the phone-side steps with the IP filled in.
+The parameter table below is for reference when operating by hand:
 
-| 项 | 值 |
+| Item | Value |
 | --- | --- |
-| 抓包主机 IP | **192.168.6.21** |
-| 代理端口 | **8080** |
-| CA 证书（给 Android 装） | `C:\Users\rexze\.mitmproxy\mitmproxy-ca-cert.cer` |
-| 抓包输出 | `D:/zeekr_ha/capture/zeekr.flow` |
-| mitmdump 可执行 | `C:/Users/rexze/.workbuddy/binaries/python/envs/mitm/Scripts/mitmdump.exe` |
+| Capture host IP | **192.168.6.21** |
+| Proxy port | **8080** |
+| CA certificate (to install on Android) | `C:\Users\rexze\.mitmproxy\mitmproxy-ca-cert.cer` |
+| Capture output | `D:/zeekr_ha/capture/zeekr.flow` |
+| mitmdump executable | `C:/Users/rexze/.workbuddy/binaries/python/envs/mitm/Scripts/mitmdump.exe` |
 
-步骤：
+Steps:
 
-1. **手机与电脑连同一个 WiFi**（网段 `192.168.6.x`）。
-2. **手机设置代理**：WLAN → 当前网络 → 代理 → 手动
-   - 主机名 `192.168.6.21`，端口 `8080`，保存。
-3. **手机装 CA**：手机浏览器打开 **`http://mitm.it`** → 选 Android →
-   下载证书（或直接把 `mitmproxy-ca-cert.cer` 传进手机安装）→
-   设置 → 安全 → 从存储设备安装 → 选 **`VPN 和应用`**（用户证书即可）。
-4. 打开极氪 App，确认能正常用车（说明代理链路通）。
-5. **做一次车控动作**（闪灯 / 锁车）。
-6. 停止抓包（我这边停 mitmdump 即可），然后我用
-   `tools/zeekr_capture_triage.py` 解析。
+1. **Connect the phone and computer to the same WiFi** (subnet `192.168.6.x`).
+2. **Set the proxy on the phone**: WLAN → current network → proxy → manual
+   - hostname `192.168.6.21`, port `8080`, save.
+3. **Install the CA on the phone**: open **`http://mitm.it`** in the phone browser → choose Android →
+   download the certificate (or just transfer `mitmproxy-ca-cert.cer` to the phone and install it) →
+   Settings → Security → Install from storage device → choose **`VPN and apps`** (a user certificate is fine).
+4. Open the Zeekr App and confirm the car works normally (this shows the proxy path is through).
+5. **Do one car-control action** (flash lights / lock).
+6. Stop capturing (on my side I just stop mitmdump), then I parse it with
+   `tools/zeekr_capture_triage.py`.
 
-> 若第 4 步 App 报网络错误：说明它对该域名确实做了校验。
-> 先试**只对 `snc-tsp-api.zeekrlife.com` 走代理**（用 mitmproxy 的 `--allow-hosts`），
-> 因为车控那一段是 SNC SDK 发的（TrustAllCerts），而 App 其它模块可能严格校验。
+> If in step 4 the App reports a network error: it means it really does validate that domain.
+> First try **proxying only `snc-tsp-api.zeekrlife.com`** (with mitmproxy's `--allow-hosts`),
+> because the car-control segment is sent by the SNC SDK (TrustAllCerts), while other App modules may validate strictly.
 
 ---
 
-### 存档：Android 模拟器方案（**本场景不适用**）
+### Archived: Android emulator approach (**not applicable to this scenario**)
 
-模拟器天生可 root、系统分区可写，能把 mitmproxy 的 CA 装成**系统级证书**
-（`-writable-system` + `adb root` + `adb remount` + 按 `<hash>.0` 命名推入
-`/system/etc/security/cacerts`）。但如 §0 所述，**登录模拟器会顶掉用户手机**，
-所以只在「账号可以随便顶掉」时使用。
+An emulator is inherently rootable and its system partition is writable, so you can install mitmproxy's CA as a **system-level certificate**
+(`-writable-system` + `adb root` + `adb remount` + push it in named as `<hash>.0` into
+`/system/etc/security/cacerts`). But as noted in §0, **logging into the emulator kicks out the user's phone**,
+so use it only when "the account can be freely kicked".
 
-### 1.1 起模拟器（Windows）
+### 1.1 Start the emulator (Windows)
 
 ```bash
-# 用 Android Studio 的 avdmanager 建一个 Pixel 系统镜像（API 30+ 皆可）
-# 关键：-writable-system 让 /system 可写
+# Use Android Studio's avdmanager to create a Pixel system image (API 30+ is fine)
+# Key: -writable-system makes /system writable
 emulator -avd Pixel_API34 -writable-system -no-snapshot-load
 ```
 
-### 1.2 装系统级 CA
+### 1.2 Install the system-level CA
 
 ```bash
 adb root
 adb remount
 
-# mitmproxy 首次运行会在 confdir 生成 mitmproxy-ca-cert.pem
+# mitmproxy generates mitmproxy-ca-cert.pem in confdir on first run
 MITM=C:/Users/rexze/.workbuddy/binaries/python/envs/mitm
-"$MITM/Scripts/mitmdump.exe" --version          # 触发 CA 生成
-# CA 默认位置：%USERPROFILE%\.mitmproxy\mitmproxy-ca-cert.pem
+"$MITM/Scripts/mitmdump.exe" --version          # trigger CA generation
+# Default CA location: %USERPROFILE%\.mitmproxy\mitmproxy-ca-cert.pem
 
-# 计算 Android 需要的 <hash>.0 文件名
+# Compute the <hash>.0 filename Android needs
 HASH=$(openssl x509 -inform PEM -subject_hash_old -in "$USERPROFILE/.mitmproxy/mitmproxy-ca-cert.pem" | head -1)
 adb push "$USERPROFILE/.mitmproxy/mitmproxy-ca-cert.pem" /sdcard/
 adb shell "mkdir -p /system/etc/security/cacerts"
 adb shell "cp /sdcard/mitmproxy-ca-cert.pem /system/etc/security/cacerts/$HASH.0"
 adb shell "chmod 644 /system/etc/security/cacerts/$HASH.0"
-adb shell "ls -l /system/etc/security/cacerts/$HASH.0"     # 确认存在
-adb reboot                                                  # 重启后系统证书生效
+adb shell "ls -l /system/etc/security/cacerts/$HASH.0"     # confirm it exists
+adb reboot                                                  # system certificate takes effect after reboot
 ```
 
-### 1.3 起代理并让模拟器走代理
+### 1.3 Start the proxy and make the emulator use it
 
 ```bash
-# 终端 1：抓包（-w 写到文件，方便回传分析）
+# Terminal 1: capture (-w writes to a file, convenient for sending back for analysis)
 "$MITM/Scripts/mitmdump.exe" -p 8080 -w D:/zeekr_ha/capture/zeekr.flow \
     --set block_global=false
 
-# 终端 2：模拟器把代理指向宿主机（10.0.2.2 是模拟器里看到的本机地址）
+# Terminal 2: point the emulator's proxy at the host machine (10.0.2.2 is the host address as seen from inside the emulator)
 adb shell settings put global http_proxy 10.0.2.2:8080
 ```
 
-### 1.4 操作与验收
+### 1.4 Operation and acceptance
 
-1. 在模拟器里装极氪 App（用 APK 直接 adb install，或应用商店）。
-2. **用 `16620192335` + 短信验证码登录**（验证码我这边收不到，需要你提供或你在这个号上收）。
-3. 确认能正常进入车辆页（说明网络通）。
-4. **做一次车控动作**（闪灯 / 鸣笛）。
-5. 回到终端按 `Ctrl+C` 停止抓包，把 `capture/zeekr.flow` 给我。
+1. Install the Zeekr App in the emulator (adb install the APK directly, or via the app store).
+2. **Log in with `16620192335` + SMS verification code** (I cannot receive the code on my side, you need to provide it or receive it on this number).
+3. Confirm you can enter the vehicle page normally (this shows the network is through).
+4. **Do one car-control action** (flash lights / honk).
+5. Back in the terminal press `Ctrl+C` to stop capturing, and give me `capture/zeekr.flow`.
 
-### 1.5 如果 App 做了证书固定（pinning）
+### 1.5 If the App does certificate pinning
 
-症状：mitmproxy 里能看到连接，但 App 报网络错误 / 看不到 HTTPS 内容。
+Symptom: you can see the connection in mitmproxy, but the App reports a network error / no HTTPS content is visible.
 
 ```bash
-# 用 frida 在模拟器上禁用 pinning（模拟器可 root，直接跑 frida-server 即可）
+# Use frida to disable pinning on the emulator (the emulator is rootable, just run frida-server directly)
 adb push frida-server-<ver>-android-x86_64 /data/local/tmp/frida-server
 adb shell "chmod 755 /data/local/tmp/frida-server"
 adb shell "/data/local/tmp/frida-server &"
-# 宿主机装 frida-tools（同一个 mitm venv 即可），用通用 unpinning 脚本挂钩
+# Install frida-tools on the host (the same mitm venv works), hook with a generic unpinning script
 objection -g com.zeekrlife.mobile explore --startup-command "android sslpinning disable"
 ```
 
 ---
 
-## 2. 方案 B（更省事，但可能失败）：真机 + 免 root 抓包 App
+## 2. Option B (easier, but may fail): real device + a no-root capture App
 
-- 装 **Reqable**（原 Charles 移动版）或 HttpCanary 同类，用其 **VPN 模式**抓包；
-- 手机需安装并信任其证书（用户级证书）；
-- **成功前提**：App 不校验证书链固定。极氪 App 有可能固定 ⇒ 失败就转方案 A。
+- Install **Reqable** (the mobile version of the former Charles) or a HttpCanary-like app, and capture using its **VPN mode**;
+- the phone must install and trust its certificate (a user-level certificate);
+- **precondition for success**: the App does not pin the certificate chain. The Zeekr App might pin ⇒ if it fails, switch to Option A.
 
-优点：5 分钟就能试；缺点：很可能抓不到 HTTPS 内容。
+Advantage: can be tried in 5 minutes; disadvantage: very likely will not capture the HTTPS content.
 
 ---
 
-## 3. 抓完之后我做什么（你只管把文件给我）
+## 3. What I do after the capture (you just need to give me the file)
 
 ```bash
 PY=C:/Users/rexze/.workbuddy/binaries/python/envs/default/Scripts/python.exe
 cd /d/zeekr_ha
 
-# .flow（mitmproxy 原生，分析需用 mitm venv 的 python）
+# .flow (mitmproxy native, analysis must use the mitm venv's python)
 C:/Users/rexze/.workbuddy/binaries/python/envs/mitm/Scripts/python.exe \
     tools/zeekr_capture_triage.py capture/zeekr.flow --filter remoteControl
 
-# .har（Reqable / Charles / mitmproxy 都可导出）
+# .har (Reqable / Charles / mitmproxy can all export it)
 $PY tools/zeekr_capture_triage.py capture/zeekr.har
 ```
 
-工具会**自动打印**：
+The tool **automatically prints**:
 
-- 每条极氪网关请求的 `method / host / path`；
-- 所有身份类请求头（`Authorization`、`X-APP-ID`、`app_code`、`X-VIN`、`sign` …）；
-- **`Authorization` 里那份 JWT 的 `azp` / `aud` / `scope`**；
-- 最后给一张「**令牌身份分布表**」。
+- the `method / host / path` of each Zeekr gateway request;
+- all identity-type request headers (`Authorization`, `X-APP-ID`, `app_code`, `X-VIN`, `sign` …);
+- the **`azp` / `aud` / `scope` of the JWT in `Authorization`**;
+- and finally a "**token identity distribution table**".
 
-### 判读
+### Interpretation
 
-| 抓包结果 | 结论 | 下一步 |
+| Capture result | Conclusion | Next step |
 | --- | --- | --- |
-| 出现 `azp != user_center_client_phone` 的令牌 | 找到 SDK 客户端身份，问题定性完成 | 逆向「如何获取该令牌」（起点已锁定为该 client） |
-| 只有 `user_center_client_phone`，但带了某个我们没发的头 | 门禁认的是头部 | 把该头加入请求即可 |
-| 只有 `user_center_client_phone`，头也一致 | 门禁认的是别的维度（如 X-VIN 派生、请求体签名） | 逐字段比对 body 差异 |
+| A token with `azp != user_center_client_phone` appears | Found the SDK client identity, the problem is characterized | Reverse engineer "how to obtain that token" (the starting point is now locked to that client) |
+| Only `user_center_client_phone`, but it carried some header we don't send | The access control recognizes the header | Just add that header to the request |
+| Only `user_center_client_phone`, and the headers match too | The access control recognizes some other dimension (e.g. X-VIN derivation, body signature) | Compare the body field by field for differences |
 
 ---
 
-## 4. 目录约定
+## 4. Directory convention
 
 ```
-D:/zeekr_ha/capture/          <- 抓包文件放这里（.flow / .har）
+D:/zeekr_ha/capture/          <- put capture files here (.flow / .har)
 ```
 
-`capture/` 已在 `.gitignore` 之外仅本机使用；**内含令牌，绝不提交到仓库。**
+`capture/` is for local use only, outside `.gitignore`; **it contains tokens, never commit it to the repo.**

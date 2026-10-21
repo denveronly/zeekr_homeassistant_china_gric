@@ -39,6 +39,13 @@ BUTTON_SPECS: tuple[ButtonSpec, ...] = (
         "start", "RHL",
         {"serviceParameters": [{"key": "rhl", "value": "horn-light-flash"}]},
     ),
+    # Captured from the Chinese app on 2026-10-21: the trunk button sends
+    # RDU start with target=trunk (unlocks / pops the tailgate).
+    ButtonSpec(
+        "open_trunk", "Open trunk", "mdi:car-back",
+        "start", "RDU",
+        {"serviceParameters": [{"key": "target", "value": "trunk"}]},
+    ),
     ButtonSpec(
         "parking_comfort_off", "Turn off parking comfort", "mdi:car-seat-cooler",
         "stop", "PCM",

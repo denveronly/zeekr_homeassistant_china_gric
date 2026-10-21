@@ -14,232 +14,305 @@
 
 type: vertical-stack
 cards:
-  # ---------- header: key numbers ----------
-  - type: grid
-    columns: 4
-    square: false
-    cards:
-      - type: tile
-        entity: sensor.CAR_battery_level
-        name: Battery
-        vertical: true
-      - type: tile
-        entity: sensor.CAR_range
-        name: Range
-        vertical: true
-      - type: tile
-        entity: sensor.CAR_interior_temperature
-        name: Inside
-        vertical: true
-      - type: tile
-        entity: sensor.CAR_odometer
-        name: Odometer
-        vertical: true
-
-  # ---------- the car (3/4 front-left view) ----------
-  - type: picture-elements
-    image: /local/zeekr001_side.png
+- type: grid
+  columns: 4
+  square: false
+  cards:
+  - {type: tile, entity: sensor.CAR_battery_level, name: Battery, vertical: true}
+  - {type: tile, entity: sensor.CAR_range, name: Range, vertical: true}
+  - {type: tile, entity: sensor.CAR_interior_temperature, name: Inside, vertical: true}
+  - {type: tile, entity: sensor.CAR_odometer, name: Odometer, vertical: true}
+- type: conditional
+  conditions:
+  - condition: or
+    conditions:
+    - {condition: state, entity: binary_sensor.CAR_door_front_left, state: 'on'}
+    - {condition: state, entity: binary_sensor.CAR_door_front_right, state: 'on'}
+    - {condition: state, entity: binary_sensor.CAR_door_rear_left, state: 'on'}
+    - {condition: state, entity: binary_sensor.CAR_door_rear_right, state: 'on'}
+    - {condition: state, entity: binary_sensor.CAR_window_front_left, state: 'on'}
+    - {condition: state, entity: binary_sensor.CAR_window_front_right, state: 'on'}
+    - {condition: state, entity: binary_sensor.CAR_window_rear_left, state: 'on'}
+    - {condition: state, entity: binary_sensor.CAR_window_rear_right, state: 'on'}
+    - {condition: state, entity: binary_sensor.CAR_hood, state: 'on'}
+    - {condition: state, entity: binary_sensor.CAR_trunk, state: 'on'}
+    - {condition: state, entity: lock.CAR_charge_port_lid, state: unlocked}
+  card: {type: markdown, content: '<ha-alert alert-type="error">Something is open: check the red marks on the car</ha-alert>'}
+- type: picture-elements
+  image: /local/zeekr001_side.png
+  elements:
+  - type: state-label
+    entity: binary_sensor.CAR_door_front_right
+    prefix: 'Right side: '
+    style: {left: 22%, top: 7%, font-size: 11px, opacity: 0.8}
+  - type: state-icon
+    entity: binary_sensor.CAR_door_front_right
+    icon: mdi:car-door
+    style: {left: 40%, top: 7%}
+  - type: state-icon
+    entity: binary_sensor.CAR_window_front_right
+    icon: mdi:car-door-lock
+    style: {left: 47%, top: 7%}
+  - type: state-icon
+    entity: binary_sensor.CAR_door_rear_right
+    icon: mdi:car-door
+    style: {left: 56%, top: 7%}
+  - type: state-icon
+    entity: binary_sensor.CAR_window_rear_right
+    icon: mdi:car-door-lock
+    style: {left: 63%, top: 7%}
+  - type: state-icon
+    entity: binary_sensor.CAR_window_front_left
+    icon: mdi:car-door-lock
+    style: {left: 62%, top: 37%}
+  - type: state-icon
+    entity: binary_sensor.CAR_window_rear_left
+    icon: mdi:car-door-lock
+    style: {left: 78%, top: 37%}
+  - type: state-icon
+    entity: binary_sensor.CAR_door_front_left
+    icon: mdi:car-door
+    style: {left: 62%, top: 56%}
+  - type: state-icon
+    entity: binary_sensor.CAR_door_rear_left
+    icon: mdi:car-door
+    style: {left: 79%, top: 56%}
+  - type: state-icon
+    entity: cover.CAR_all_windows
+    icon: mdi:window-shutter
+    tap_action: {action: toggle}
+    hold_action: {action: more-info}
+    style: {left: 70%, top: 26%}
+  - type: state-icon
+    entity: binary_sensor.CAR_hood
+    icon: mdi:car-select
+    style: {left: 15%, top: 47%}
+  - type: state-icon
+    entity: binary_sensor.CAR_trunk
+    icon: mdi:car-back
+    style: {left: 93%, top: 33%}
+  - type: icon
+    icon: mdi:arrow-up-down-bold
+    title: Trunk open / close
+    tap_action:
+      action: perform-action
+      perform_action: button.press
+      target: {entity_id: button.CAR_trunk_open_close}
+      confirmation: {text: 'Open / close the trunk? Make sure nobody is near it.'}
+    style: {left: 93%, top: 25%, color: var(--primary-color)}
+  - type: state-icon
+    entity: lock.CAR_charge_port_lid
+    icon: mdi:ev-plug-type2
+    tap_action:
+      action: toggle
+      confirmation: {text: 'Open / close the charge port lid?'}
+    hold_action: {action: more-info}
+    style: {left: 95%, top: 44%}
+  - type: state-label
+    entity: lock.CAR_charge_port_lid
+    style: {left: 93%, top: 51%, font-size: 11px}
+  - type: state-label
+    entity: sensor.CAR_tire_pressure_front_left
+    style: {left: 41%, top: 82%, font-size: 12px}
+  - type: state-label
+    entity: sensor.CAR_tire_pressure_rear_left
+    style: {left: 91%, top: 78%, font-size: 12px}
+  - type: state-label
+    entity: sensor.CAR_tire_pressure_front_right
+    prefix: 'FR '
+    style: {left: 30%, top: 94%, font-size: 11px, opacity: 0.8}
+  - type: state-label
+    entity: sensor.CAR_tire_pressure_rear_right
+    prefix: 'RR '
+    style: {left: 55%, top: 94%, font-size: 11px, opacity: 0.8}
+  - type: conditional
+    conditions:
+    - {entity: binary_sensor.CAR_door_front_right, state: 'on'}
     elements:
-      # right side is not visible in this view: badges in a row at the top
-      - type: state-label
-        entity: binary_sensor.CAR_door_front_right
-        prefix: "Right side: "
-        style: {left: 22%, top: 7%, font-size: 11px, opacity: 0.8}
-      - type: state-icon
-        entity: binary_sensor.CAR_door_front_right
-        icon: mdi:car-door
-        style: {left: 40%, top: 7%}
-      - type: state-icon
-        entity: binary_sensor.CAR_window_front_right
-        icon: mdi:car-door-lock
-        style: {left: 47%, top: 7%}
-      - type: state-icon
-        entity: binary_sensor.CAR_door_rear_right
-        icon: mdi:car-door
-        style: {left: 56%, top: 7%}
-      - type: state-icon
-        entity: binary_sensor.CAR_window_rear_right
-        icon: mdi:car-door-lock
-        style: {left: 63%, top: 7%}
-      # left side, on the car
-      - type: state-icon
-        entity: binary_sensor.CAR_window_front_left
-        icon: mdi:car-door-lock
-        style: {left: 62%, top: 37%}
-      - type: state-icon
-        entity: binary_sensor.CAR_window_rear_left
-        icon: mdi:car-door-lock
-        style: {left: 78%, top: 37%}
-      - type: state-icon
-        entity: binary_sensor.CAR_door_front_left
-        icon: mdi:car-door
-        style: {left: 62%, top: 56%}
-      - type: state-icon
-        entity: binary_sensor.CAR_door_rear_left
-        icon: mdi:car-door
-        style: {left: 79%, top: 56%}
-      # all windows - the one real window control (tap = open/close)
-      - type: state-icon
-        entity: cover.CAR_all_windows
-        icon: mdi:window-shutter
-        tap_action: {action: toggle}
-        hold_action: {action: more-info}
-        style: {left: 70%, top: 26%}
-      # hood
-      - type: state-icon
-        entity: binary_sensor.CAR_hood
-        icon: mdi:car-select
-        style: {left: 15%, top: 47%}
-      # trunk state + open / close at the rear
-      - type: state-icon
-        entity: binary_sensor.CAR_trunk
-        icon: mdi:car-back
-        style: {left: 93%, top: 33%}
-      - type: icon
-        icon: mdi:arrow-up-down-bold
-        title: Trunk open / close
-        tap_action:
-          action: perform-action
-          perform_action: button.press
-          target: {entity_id: button.CAR_trunk_open_close}
-          confirmation: {text: "Open / close the trunk? Make sure nobody is near it."}
-        style: {left: 93%, top: 25%, color: var(--primary-color)}
-      # charge port lid - left rear, on the round flap (tap = open/close)
-      - type: state-icon
-        entity: lock.CAR_charge_port_lid
-        icon: mdi:ev-plug-type2
-        tap_action:
-          action: toggle
-          confirmation: {text: "Open / close the charge port lid?"}
-        hold_action: {action: more-info}
-        style: {left: 95%, top: 44%}
-      - type: state-label
-        entity: lock.CAR_charge_port_lid
-        style: {left: 93%, top: 51%, font-size: 11px}
-      # tyre pressures: left wheels on the car, right wheels at the bottom
-      - type: state-label
-        entity: sensor.CAR_tire_pressure_front_left
-        style: {left: 41%, top: 82%, font-size: 12px}
-      - type: state-label
-        entity: sensor.CAR_tire_pressure_rear_left
-        style: {left: 91%, top: 78%, font-size: 12px}
-      - type: state-label
-        entity: sensor.CAR_tire_pressure_front_right
-        prefix: "FR "
-        style: {left: 30%, top: 94%, font-size: 11px, opacity: 0.8}
-      - type: state-label
-        entity: sensor.CAR_tire_pressure_rear_right
-        prefix: "RR "
-        style: {left: 55%, top: 94%, font-size: 11px, opacity: 0.8}
-
-  # ---------- quick actions ----------
+    - type: icon
+      entity: binary_sensor.CAR_door_front_right
+      icon: mdi:car-door
+      title: Open
+      tap_action: {action: more-info}
+      style: {left: 40%, top: 7%, color: white, background: 'rgba(229, 57, 53, 0.9)', border-radius: 50%, padding: 6px, box-shadow: '0 0 14px 6px rgba(229, 57, 53, 0.6)'}
+  - type: conditional
+    conditions:
+    - {entity: binary_sensor.CAR_window_front_right, state: 'on'}
+    elements:
+    - type: icon
+      entity: binary_sensor.CAR_window_front_right
+      icon: mdi:car-door-lock
+      title: Open
+      tap_action: {action: more-info}
+      style: {left: 47%, top: 7%, color: white, background: 'rgba(229, 57, 53, 0.9)', border-radius: 50%, padding: 6px, box-shadow: '0 0 14px 6px rgba(229, 57, 53, 0.6)'}
+  - type: conditional
+    conditions:
+    - {entity: binary_sensor.CAR_door_rear_right, state: 'on'}
+    elements:
+    - type: icon
+      entity: binary_sensor.CAR_door_rear_right
+      icon: mdi:car-door
+      title: Open
+      tap_action: {action: more-info}
+      style: {left: 56%, top: 7%, color: white, background: 'rgba(229, 57, 53, 0.9)', border-radius: 50%, padding: 6px, box-shadow: '0 0 14px 6px rgba(229, 57, 53, 0.6)'}
+  - type: conditional
+    conditions:
+    - {entity: binary_sensor.CAR_window_rear_right, state: 'on'}
+    elements:
+    - type: icon
+      entity: binary_sensor.CAR_window_rear_right
+      icon: mdi:car-door-lock
+      title: Open
+      tap_action: {action: more-info}
+      style: {left: 63%, top: 7%, color: white, background: 'rgba(229, 57, 53, 0.9)', border-radius: 50%, padding: 6px, box-shadow: '0 0 14px 6px rgba(229, 57, 53, 0.6)'}
+  - type: conditional
+    conditions:
+    - {entity: binary_sensor.CAR_window_front_left, state: 'on'}
+    elements:
+    - type: icon
+      entity: binary_sensor.CAR_window_front_left
+      icon: mdi:car-door-lock
+      title: Open
+      tap_action: {action: more-info}
+      style: {left: 62%, top: 37%, color: white, background: 'rgba(229, 57, 53, 0.9)', border-radius: 50%, padding: 6px, box-shadow: '0 0 14px 6px rgba(229, 57, 53, 0.6)'}
+  - type: conditional
+    conditions:
+    - {entity: binary_sensor.CAR_window_rear_left, state: 'on'}
+    elements:
+    - type: icon
+      entity: binary_sensor.CAR_window_rear_left
+      icon: mdi:car-door-lock
+      title: Open
+      tap_action: {action: more-info}
+      style: {left: 78%, top: 37%, color: white, background: 'rgba(229, 57, 53, 0.9)', border-radius: 50%, padding: 6px, box-shadow: '0 0 14px 6px rgba(229, 57, 53, 0.6)'}
+  - type: conditional
+    conditions:
+    - {entity: binary_sensor.CAR_door_front_left, state: 'on'}
+    elements:
+    - type: icon
+      entity: binary_sensor.CAR_door_front_left
+      icon: mdi:car-door
+      title: Open
+      tap_action: {action: more-info}
+      style: {left: 62%, top: 56%, color: white, background: 'rgba(229, 57, 53, 0.9)', border-radius: 50%, padding: 6px, box-shadow: '0 0 14px 6px rgba(229, 57, 53, 0.6)'}
+  - type: conditional
+    conditions:
+    - {entity: binary_sensor.CAR_door_rear_left, state: 'on'}
+    elements:
+    - type: icon
+      entity: binary_sensor.CAR_door_rear_left
+      icon: mdi:car-door
+      title: Open
+      tap_action: {action: more-info}
+      style: {left: 79%, top: 56%, color: white, background: 'rgba(229, 57, 53, 0.9)', border-radius: 50%, padding: 6px, box-shadow: '0 0 14px 6px rgba(229, 57, 53, 0.6)'}
+  - type: conditional
+    conditions:
+    - {entity: binary_sensor.CAR_hood, state: 'on'}
+    elements:
+    - type: icon
+      entity: binary_sensor.CAR_hood
+      icon: mdi:car-select
+      title: Open
+      tap_action: {action: more-info}
+      style: {left: 15%, top: 47%, color: white, background: 'rgba(229, 57, 53, 0.9)', border-radius: 50%, padding: 6px, box-shadow: '0 0 14px 6px rgba(229, 57, 53, 0.6)'}
+  - type: conditional
+    conditions:
+    - {entity: binary_sensor.CAR_trunk, state: 'on'}
+    elements:
+    - type: icon
+      entity: binary_sensor.CAR_trunk
+      icon: mdi:car-back
+      title: Open
+      tap_action: {action: more-info}
+      style: {left: 93%, top: 33%, color: white, background: 'rgba(229, 57, 53, 0.9)', border-radius: 50%, padding: 6px, box-shadow: '0 0 14px 6px rgba(229, 57, 53, 0.6)'}
+  - type: conditional
+    conditions:
+    - {entity: lock.CAR_charge_port_lid, state: unlocked}
+    elements:
+    - type: icon
+      entity: lock.CAR_charge_port_lid
+      icon: mdi:ev-plug-type2
+      title: Open
+      tap_action: {action: more-info}
+      style: {left: 95%, top: 44%, color: white, background: 'rgba(229, 57, 53, 0.9)', border-radius: 50%, padding: 6px, box-shadow: '0 0 14px 6px rgba(229, 57, 53, 0.6)'}
+- type: grid
+  columns: 4
+  square: false
+  cards:
+  - type: button
+    entity: lock.CAR_door_lock
+    name: Lock
+    tap_action:
+      action: toggle
+      confirmation: {text: 'Lock / unlock the car?'}
+  - type: button
+    entity: button.CAR_flash_lights
+    name: Flash
+    icon: mdi:car-light-alert
+    tap_action:
+      action: perform-action
+      perform_action: button.press
+      target: {entity_id: button.CAR_flash_lights}
+  - type: button
+    entity: switch.CAR_sentry_mode
+    name: Sentry
+    tap_action: {action: toggle}
+  - type: button
+    entity: cover.CAR_sunshade
+    name: Sunshade
+    tap_action: {action: toggle}
+- type: custom:expander-card
+  title: Charging
+  expanded: false
+  cards:
+  - type: entities
+    entities:
+    - {entity: switch.CAR_charging, name: Charging}
+    - {entity: binary_sensor.CAR_charger_plugged_in, name: Plugged in}
+    - {entity: number.CAR_charge_limit, name: Charge limit}
+    - {entity: sensor.CAR_charging_power, name: Power}
+    - {entity: sensor.CAR_charging_voltage, name: Voltage}
+    - {entity: sensor.CAR_charging_current, name: Current}
+    - {entity: sensor.CAR_estimated_full_charge_time, name: Full in}
+    - {type: section, label: Schedule}
+    - {entity: switch.CAR_charging_schedule, name: Scheduled charging}
+    - {entity: time.CAR_charging_start_time, name: Start}
+    - {entity: time.CAR_charging_end_time, name: End}
+    - {entity: lock.CAR_charge_port_lid, name: Charge port lid}
+- type: custom:expander-card
+  title: Climate
+  expanded: false
+  cards:
+  - {type: thermostat, entity: climate.CAR_climate}
   - type: grid
-    columns: 4
+    columns: 2
     square: false
     cards:
-      - type: button
-        entity: lock.CAR_door_lock
-        name: Lock
-        tap_action:
-          action: toggle
-          confirmation: {text: "Lock / unlock the car?"}
-      - type: button
-        entity: button.CAR_flash_lights
-        name: Flash
-        icon: mdi:car-light-alert
-        tap_action:
-          action: perform-action
-          perform_action: button.press
-          target: {entity_id: button.CAR_flash_lights}
-      - type: button
-        entity: switch.CAR_sentry_mode
-        name: Sentry
-        tap_action: {action: toggle}
-      - type: button
-        entity: cover.CAR_sunshade
-        name: Sunshade
-        tap_action: {action: toggle}
-
-  # ---------- charging drop-down ----------
-  - type: custom:expander-card
-    title: Charging
-    expanded: false
-    cards:
-      - type: entities
-        entities:
-          - entity: switch.CAR_charging
-            name: Charging
-          - entity: binary_sensor.CAR_charger_plugged_in
-            name: Plugged in
-          - entity: number.CAR_charge_limit
-            name: Charge limit
-          - entity: sensor.CAR_charging_power
-            name: Power
-          - entity: sensor.CAR_charging_voltage
-            name: Voltage
-          - entity: sensor.CAR_charging_current
-            name: Current
-          - entity: sensor.CAR_estimated_full_charge_time
-            name: Full in
-          - type: section
-            label: Schedule
-          - entity: switch.CAR_charging_schedule
-            name: Scheduled charging
-          - entity: time.CAR_charging_start_time
-            name: Start
-          - entity: time.CAR_charging_end_time
-            name: End
-          - entity: lock.CAR_charge_port_lid
-            name: Charge port lid
-
-  # ---------- climate drop-down ----------
-  - type: custom:expander-card
-    title: Climate
-    expanded: false
-    cards:
-      - type: thermostat
-        entity: climate.CAR_climate
-      - type: grid
-        columns: 2
-        square: false
-        cards:
-          - type: button
-            entity: button.CAR_rapid_cooling
-            name: Rapid cool
-            tap_action:
-              action: perform-action
-              perform_action: button.press
-              target: {entity_id: button.CAR_rapid_cooling}
-          - type: button
-            entity: button.CAR_rapid_heating
-            name: Rapid heat
-            tap_action:
-              action: perform-action
-              perform_action: button.press
-              target: {entity_id: button.CAR_rapid_heating}
-      - type: entities
-        entities:
-          - entity: number.CAR_climate_run_duration
-            name: Run time
-          - entity: select.CAR_seat_heating_driver
-            name: Seat heat driver
-          - entity: select.CAR_seat_heating_passenger
-            name: Seat heat passenger
-          - entity: select.CAR_seat_ventilation_driver
-            name: Seat vent driver
-          - entity: select.CAR_seat_ventilation_passenger
-            name: Seat vent passenger
-          - entity: switch.CAR_steering_wheel_heating
-            name: Steering wheel
-          - entity: switch.CAR_windshield_defrost
-            name: Defrost
-          - entity: sensor.CAR_exterior_temperature
-            name: Outside
-          - type: section
-            label: Departure
-          - entity: switch.CAR_departure_schedule
-            name: Departure schedule
-          - entity: datetime.CAR_scheduled_departure_time
-            name: Departure time
-          - entity: switch.CAR_departure_climate
-            name: Pre-condition
+    - type: button
+      entity: button.CAR_rapid_cooling
+      name: Rapid cool
+      tap_action:
+        action: perform-action
+        perform_action: button.press
+        target: {entity_id: button.CAR_rapid_cooling}
+    - type: button
+      entity: button.CAR_rapid_heating
+      name: Rapid heat
+      tap_action:
+        action: perform-action
+        perform_action: button.press
+        target: {entity_id: button.CAR_rapid_heating}
+  - type: entities
+    entities:
+    - {entity: number.CAR_climate_run_duration, name: Run time}
+    - {entity: select.CAR_seat_heating_driver, name: Seat heat driver}
+    - {entity: select.CAR_seat_heating_passenger, name: Seat heat passenger}
+    - {entity: select.CAR_seat_ventilation_driver, name: Seat vent driver}
+    - {entity: select.CAR_seat_ventilation_passenger, name: Seat vent passenger}
+    - {entity: switch.CAR_steering_wheel_heating, name: Steering wheel}
+    - {entity: switch.CAR_windshield_defrost, name: Defrost}
+    - {entity: sensor.CAR_exterior_temperature, name: Outside}
+    - {type: section, label: Departure}
+    - {entity: switch.CAR_departure_schedule, name: Departure schedule}
+    - {entity: datetime.CAR_scheduled_departure_time, name: Departure time}
+    - {entity: switch.CAR_departure_climate, name: Pre-condition}

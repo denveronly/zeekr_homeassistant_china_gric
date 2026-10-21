@@ -7,16 +7,22 @@ top-view photo of the car with door / window / hood / trunk state badges, an
 actions (lock, flash, sentry, sunshade), and two drop-downs for **Charging**
 and **Climate**.
 
-File: [`zeekr001_card.yaml`](zeekr001_card.yaml)
+Two versions, same controls:
+
+- [`zeekr001_card_side.yaml`](zeekr001_card_side.yaml): for a 3/4 front-left studio photo
+  (car facing left). Left-side doors, windows, wheels and the charge port flap
+  sit on the car; the right side, which isn't visible, is a badge row at the top.
+  Photo: `/config/www/zeekr001_side.png`.
+- [`zeekr001_card.yaml`](zeekr001_card.yaml): for a top-view photo, front pointing up.
+  Photo: `/config/www/zeekr001_top.png`.
 
 ## Requirements
 
 - This integration (Zeekr EV, GRIC channel for the controls)
 - [Expander Card](https://github.com/MelleD/lovelace-expander-card) from HACS,
   for the Charging / Climate drop-downs
-- A top-view photo of your car, **front pointing up**, saved as
-  `/config/www/zeekr001_top.png` (served as `/local/zeekr001_top.png`;
-  restart Home Assistant if the `www` folder is new)
+- A photo of your car saved in `/config/www/` under the name the version you
+  use expects (see above); restart Home Assistant if the `www` folder is new
 
 ## Install
 

@@ -1,10 +1,10 @@
-# 极氪 App（com.zeekrlife.mobile v5.0.5）内的服务端路由
+# Server-side routes inside the Zeekr App (com.zeekrlife.mobile v5.0.5)
 
-来源：官方 APK 的 dex/so/json/xml 字符串表（只读提取，未执行、未修改）。
-提取方式：`tools/inspect_apk.py` 之外另用一次性脚本按 `/ms-…` 正则扫描。
-这些是**事实**，优先级高于任何推断 —— 改端点前先对照这里。
+Source: the dex/so/json/xml string tables of the official APK (read-only extraction, nothing executed, nothing modified).
+Extraction method: in addition to `tools/inspect_apk.py`, a one-off script was used to scan for the `/ms-…` regex.
+These are **facts**, with priority over any inference — before changing an endpoint, check here first.
 
-## 车辆状态
+## Vehicle status
 ```
 /ms-vehicle-status/api/v1.0/vehicle/status/carFridge
 /ms-vehicle-status/api/v1.0/vehicle/status/powerMode
@@ -14,7 +14,7 @@
 /ms-vehicle-status/api/v2.0/vehicle/status/widget
 ```
 
-## 远程控制
+## Remote control
 ```
 /ms-remote-control/api/v1.0/remoteControl/aiClimate
 /ms-remote-control/api/v1.0/remoteControl/control
@@ -28,7 +28,7 @@
 /ms-remote-control/api/v1.0/remoteControl/temperature/save/pattern
 ```
 
-## 充电
+## Charging
 ```
 /ms-charge-manage/api/v1.0/charge/control
 /ms-charge-manage/api/v1.0/charge/getBookingVtm
@@ -45,7 +45,7 @@
 /ms-charge-manage/api/v2.0/charge/setTravelPlan
 ```
 
-## 认证 / 用户
+## Authentication / user
 ```
 /ms-user-auth/api/v1.0/account/affection
 /ms-user-auth/api/v1.0/account/affection/unbind
@@ -62,7 +62,7 @@
 /ms-user-auth/api/v1.0/face/registered
 ```
 
-## 其余（完整清单）
+## Everything else (full list)
 ```
 /ms-ai-cloud/api/v1.0/material/query
 /ms-app-bff/api/1.0/permissions
@@ -241,103 +241,104 @@
 
 ---
 
-# 2026-09-18 补充：dex 加固结论 + 用户/认证服务路由 + 请求 Bean 字段线索
+# 2026-09-18 addendum: dex hardening conclusions + user/auth service routes + request-Bean field clues
 
-## dex 加固（决定后续所有逆向手段的选择）
+## dex hardening (determines the choice of all later reverse-engineering methods)
 
-`classes.dex`（195 MB）header 被伪造（`endian_tag`/`string_ids_off` 等全是垃圾值，
-仅 `file_size` 字段疑似真实 = 175662436，与整包 195141696 之差 ~19.5 MB 疑似壳数据）。
-androguard 只能解析出 **45 个壳类**；真实 dex 的 **id 表（string_ids/type_ids/
-field_ids/class_defs）不在明文中**（已用「锚点 u32 反查」+「相对基址 Δ 扫描（含 4096
-对齐与全量扫描）」两种方法证实）。字符串**数据区明文可读** ⇒ 一切结论只能来自
-字符串池（本工具 `tools/inspect_apk.py` 与 `scratch/dex_grep.py`）。
-**结构化解析（字段表/注解/字节码）走不通，别再试。**
+The header of `classes.dex` (195 MB) is forged (`endian_tag`/`string_ids_off` etc. are all garbage values,
+only the `file_size` field seems real = 175662436; the ~19.5 MB difference from the whole package 195141696 is suspected to be shell/packer data).
+androguard can only parse out **45 shell classes**; the real dex's **id tables (string_ids/type_ids/
+field_ids/class_defs) are not in plaintext** (confirmed with two methods: "anchor u32 back-lookup" and
+"relative base-address Δ scan (including 4096
+alignment and a full scan)"). The string **data area is readable in plaintext** ⇒ every conclusion can only come from
+the string pool (this tool `tools/inspect_apk.py` and `scratch/dex_grep.py`).
+**Structured parsing (field tables/annotations/bytecode) is a dead end, don't try it again.**
 
-## 用户/认证服务路由（GW1 `api-gw-toc` 上实测存活）
+## User/auth service routes (verified alive on GW1 `api-gw-toc`)
 
-服务 `zeekrlife-app-user` 在 GW1 上**真实存在**（此前 tspCode 候选 404 只是路径不对）。
-实测：`GET /zeekrlife-app-user/v1/user/pub/secretConfig` → `000000`，
-返回 RSA **publicKey**（App 的 secret 动态下发，不在 dex 里硬编码）。
+The service `zeekrlife-app-user` **really exists** on GW1 (the earlier tspCode candidate 404s were just the wrong path).
+Verified: `GET /zeekrlife-app-user/v1/user/pub/secretConfig` → `000000`,
+returns an RSA **publicKey** (the App's secret is pushed dynamically, not hard-coded in the dex).
 
-关键端点（其余 61 条见会话记录，多为隐私/资料类）：
+Key endpoints (the remaining 61 are in the session log, mostly privacy/profile related):
 
 ```
-/zeekrlife-app-user/v1/user/pub/sms/authCode           短信验证码
-/zeekrlife-app-user/v1/user/pub/login/mobile           手机号登录
-/zeekrlife-app-user/v1/user/pub/login/mobile/oneClick  一键登录
+/zeekrlife-app-user/v1/user/pub/sms/authCode           SMS verification code
+/zeekrlife-app-user/v1/user/pub/login/mobile           mobile-number login
+/zeekrlife-app-user/v1/user/pub/login/mobile/oneClick  one-click login
 /zeekrlife-app-user/v1/user/pub/login/platform
-/zeekrlife-app-user/v1/user/pub/secretConfig           RSA 公钥下发（实测 000000）
-/zeekrlife-app-user/v1/user/toc/authCodeByServiceCode  按「场景代码」换 authCode（实测 POST {} → 000005 场景代码,不为空）
-/zeekrlife-app-user/v1/user/toc/validateAuthCode       （实测 POST {} → 000005 验证码不为空,场景代码,不为空）
-/zeekrlife-mp-auth2/v1/auth/accessCode                 （GET 400 / POST 405 ⇒ 动词未知，路由存在）
+/zeekrlife-app-user/v1/user/pub/secretConfig           RSA public-key delivery (probed 000000)
+/zeekrlife-app-user/v1/user/toc/authCodeByServiceCode  exchange an authCode by "scene code" (probed POST {} → 000005 场景代码,不为空 (scene code, cannot be empty))
+/zeekrlife-app-user/v1/user/toc/validateAuthCode       (probed POST {} → 000005 验证码不为空,场景代码,不为空 (verification code cannot be empty, scene code, cannot be empty))
+/zeekrlife-mp-auth2/v1/auth/accessCode                 (GET 400 / POST 405 ⇒ verb unknown, route exists)
 ```
 
-⇒ **存在「场景代码(scene) → authCode → validate」链**，参数名待挖（不是
-`serviceCode`）。这是下一个最可能换出 TSP 能力令牌的入口。
+⇒ There **is a "scene code (scene) → authCode → validate" chain**, the parameter name still has to be dug out (it is not
+`serviceCode`). This is the next most likely entry point for exchanging a TSP capability token.
 
-## 控制协议的闭环形状（来自 toString 常量）
+## The closed-loop shape of the control protocol (from toString constants)
 
-- `ControlReqBean(controlType=` / `ControlReqBean15(controlType=` —— 控制请求 Bean；
-  另有构造签名 `(String×9, List, OperationScheduling, TimerEntity, String)`。
-- **`RemoteControlRsp(sessionId=`** ⇒ 控制下发返回 **sessionId**；
-  `ControlResult(sessionId=` / `ControlResultBean(code=` + 路由
-  `queryProcessResult` ⇒ App 的流程是 **下发 → 拿 sessionId → 轮询执行结果**，
-  不是发了就算。我们集成目前只发不等，若 GW2 通道有对应的结果查询接口，
-  闭环验证应优先做这个。
-- `OperationScheduling(duration=`（构造参数
-  `Integer, Long, Boolean, Integer, Integer, Long, Long`）；
-  `TimerEntity(timers=`、`TimerInfo(timerId=`。
-- 空调：`AiClimateReqBean(dataSource=`（GW3 `aiClimate` 用）、
-  `ClimateStatusVo(interiorTemp=`、`SmartTempSettingBean(heat=`。
+- `ControlReqBean(controlType=` / `ControlReqBean15(controlType=` — the control request Bean;
+  there is also the constructor signature `(String×9, List, OperationScheduling, TimerEntity, String)`.
+- **`RemoteControlRsp(sessionId=`** ⇒ sending a control returns a **sessionId**;
+  `ControlResult(sessionId=` / `ControlResultBean(code=` plus the route
+  `queryProcessResult` ⇒ the App's flow is **send → get sessionId → poll the execution result**,
+  not fire-and-forget. Our integration currently only sends and does not wait; if the GW2 channel has a matching
+  result-query interface, the closed-loop verification should prioritize this.
+- `OperationScheduling(duration=` (constructor parameters
+  `Integer, Long, Boolean, Integer, Integer, Long, Long`);
+  `TimerEntity(timers=`, `TimerInfo(timerId=`.
+- Climate control: `AiClimateReqBean(dataSource=` (used by GW3 `aiClimate`), 
+  `ClimateStatusVo(interiorTemp=`, `SmartTempSettingBean(heat=`.
 
-## serviceId 与参数键（dex 字符串确认）
+## serviceId and parameter keys (confirmed from dex strings)
 
-- **serviceId 全部在 dex 中**：`ZAF`/`RDL`/`RDU`/`RWS`/`RHL`/`RCS`/`RSM`/`PCM`/`RCE`，
-  与集成现用一致。
-- ZAF 参数键：`AC`（存在）、`AC.temp`、`AC.duration` —— 别的没有。
-- **`rce.*` 家族**：`rce.conditioner` `rce.heat` `rce.ventilation` `rce.level`
-  `rce.temp`，以及 **`rce.heat.{11,19,21,25,29,31,39}`**、
-  **`rce.ventilation.{11,19,21,25,29,31,39}`** —— 数字后缀像是温度/档位枚举，
-  用法待定（可能是 `rce.heat` 的取值集合，也可能是组合键）。
+- **All serviceIds are in the dex**: `ZAF`/`RDL`/`RDU`/`RWS`/`RHL`/`RCS`/`RSM`/`PCM`/`RCE`,
+  consistent with what the integration currently uses.
+- ZAF parameter keys: `AC` (exists), `AC.temp`, `AC.duration` — nothing else.
+- **The `rce.*` family**: `rce.conditioner` `rce.heat` `rce.ventilation` `rce.level`
+  `rce.temp`, as well as **`rce.heat.{11,19,21,25,29,31,39}`** and
+  **`rce.ventilation.{11,19,21,25,29,31,39}`** — the numeric suffixes look like a temperature/gear enum,
+  usage still to be determined (they may be the value set of `rce.heat`, or they may be composite keys).
 
 ---
 
-# 2026-09-18 深夜：GW3 微服务地图 + 「SDK 门禁」真相 + 车辆分享业务域
+# 2026-09-18 late night: GW3 microservice map + the truth about the "SDK gate" + the vehicle-sharing business domain
 
-## 一句话结论
+## One-sentence conclusion
 
-**`079001` 的真相是「SDK 级接口」门禁 —— 卡的是客户端/令牌身份，不是参数。**
-同一份 GW3 令牌下，同一服务的「控制类」接口被拒、「查询类」接口放行。
-⇒ **GW2 侧继续猜 `serviceParameters` 参数是死路，可正式停止。**
+**The truth about `079001` is that it is an "SDK-level interface" gate — it blocks on client/token identity, not on parameters.**
+Under the same GW3 token, for the same service the "control" interfaces are rejected while the "query" interfaces are allowed through.
+⇒ **Continuing to guess the `serviceParameters` parameter on the GW2 side is a dead end and can be formally stopped.**
 
-## 实测矩阵（令牌：`azp=aud=user_center_client_phone`、`scope=""`）
+## Probe matrix (token: `azp=aud=user_center_client_phone`, `scope=""`)
 
-| 接口 | 结果 | 判定 |
+| Interface | Result | Verdict |
 | --- | --- | --- |
-| `POST /ms-remote-control/v1.0/remoteControl/control` | `079001 [SDK]此接口未被授权，无法访问!` | SDK 门禁 |
-| `GET /ms-vehicle-status/api/v2.0/vehicle/status/latest` | 同上 | SDK 门禁 |
-| `ms-vehicle-status/.../qrvs`、`/vtm`、`/widget` | 同上 | SDK 门禁 |
-| `GET /ms-tsp-user-vehicle/.../vehicle-shares/services`、`/check-share` | 同上 | SDK 门禁 |
-| `GET /ms-remote-control/v1.0/remoteControl/queryProcessResult` | `000002` sessionId 缺失 | **可用（闭环结果查询！）** |
-| `GET ms-tsp-user-vehicle/.../vehicle-shares/{owner/share-list, owner/share-histories, share/accept-list, share/accept-histories}` | `000000 ok`（total=0） | **可用** |
-| `POST .../vehicle-shares/{owner/share, update-auth, cancel, share/accept}` | `000002` 分享类型/分享主键不可为空 | 网关放行，参数级校验 |
-| `GET /ms-user-auth/api/v1.0/auth/cloud/temp/code` | `000000 ok` | **可用** |
-| `POST /ms-user-auth/v1.0/auth/login` | `000000 ok` → 令牌 1047 字符 | 我们现用登录 |
+| `POST /ms-remote-control/v1.0/remoteControl/control` | `079001 [SDK]此接口未被授权，无法访问!` (interface not authorized, cannot be accessed) | SDK gate |
+| `GET /ms-vehicle-status/api/v2.0/vehicle/status/latest` | same as above | SDK gate |
+| `ms-vehicle-status/.../qrvs`, `/vtm`, `/widget` | same as above | SDK gate |
+| `GET /ms-tsp-user-vehicle/.../vehicle-shares/services`, `/check-share` | same as above | SDK gate |
+| `GET /ms-remote-control/v1.0/remoteControl/queryProcessResult` | `000002` sessionId missing | **usable (closed-loop result query!)** |
+| `GET ms-tsp-user-vehicle/.../vehicle-shares/{owner/share-list, owner/share-histories, share/accept-list, share/accept-histories}` | `000000 ok` (total=0) | **usable** |
+| `POST .../vehicle-shares/{owner/share, update-auth, cancel, share/accept}` | `000002` share type / share primary key cannot be empty | gateway allows through, parameter-level validation |
+| `GET /ms-user-auth/api/v1.0/auth/cloud/temp/code` | `000000 ok` | **usable** |
+| `POST /ms-user-auth/v1.0/auth/login` | `000000 ok` → 1047-character token | the login we currently use |
 
-要点：同一服务内「控制被拒 / 查询放行」⇒ 门禁按**接口粒度**（很可能看令牌 azp/scope 或客户端身份），
-与 `X-VIN`、`serviceParameters` 无关。
+Key point: within the same service "control rejected / query allowed" ⇒ the gate is at **interface granularity** (most likely looking at the token azp/scope or the client identity),
+unrelated to `X-VIN` or `serviceParameters`.
 
-## GW3 令牌声明（实测解码）
+## GW3 token claims (decoded in practice)
 
 ```
 iss   = https://snc-api-gw-inner.zeekrlife.com/auth-service/inner/v1/oauth/info
-aud   = azp = user_center_client_phone     <- 用户中心「手机号登录」客户端
-scope = ""                                  <- 空
+aud   = azp = user_center_client_phone     <- the "mobile-number login" client of the user center
+scope = ""                                  <- empty
 sub   = openId = 2068684429979209728
-userId= 403215671   sid = <uuid>   RS256 / 1047 字符   exp 7 天
+userId= 403215671   sid = <uuid>   RS256 / 1047 characters   exp 7 days
 ```
 
-## 微服务地图（dex 全量枚举 55 个前缀）
+## Microservice map (55 prefixes enumerated from the full dex)
 
 ```
 zeekrlife-bbs-theme(158) zeekrlife-mp-order(92) zeekrlife-mp-integral(64)
@@ -356,145 +357,145 @@ ms-vehicle-guard(1)      ms-ai-cloud(1) ms-app-message-center(1) ms-vehicle-acco
 ms-vehicle-extend(1)     appconfig(1) ms-iot-status(1) ms-log(1) zeekrlife-mp-store(1)
 ```
 
-### 控制相关服务的完整路由（dex 原文）
+### Full routes of the control-related services (dex originals)
 
 ```
-# ms-remote-control（10）
-/ms-remote-control/api/v1.0/remoteControl/aiClimate        <- 注意带 /api/
+# ms-remote-control (10)
+/ms-remote-control/api/v1.0/remoteControl/aiClimate        <- note the /api/ segment
 /ms-remote-control/api/v1.0/remoteControl/control
 /ms-remote-control/api/v1.0/remoteControl/getOxygenSupply
 /ms-remote-control/api/v1.0/remoteControl/queryAiClimate
-/ms-remote-control/api/v1.0/remoteControl/queryProcessResult   <- 闭环结果查询（实测可用）
+/ms-remote-control/api/v1.0/remoteControl/queryProcessResult   <- closed-loop result query (verified usable)
 /ms-remote-control/api/v1.0/remoteControl/setOxygenSupply
 /ms-remote-control/api/v1.0/remoteControl/setSmartTemp
 /ms-remote-control/api/v1.0/remoteControl/temperature/{del,get,save}/pattern
 
-# ms-vehicle-status（6）
+# ms-vehicle-status (6)
 /ms-vehicle-status/api/v1.0/vehicle/status/{carFridge,powerMode,qrvs,vtm}
 /ms-vehicle-status/api/v2.0/vehicle/status/{latest,widget}
 
-# ms-iot-control（2）  <- GW1/GW2/GW3 均 404，宿主未知
+# ms-iot-control (2)  <- 404 on GW1/GW2/GW3, host unknown
 /ms-iot-control/api/v1.0/iotControl/downLink
 /ms-iot-control/api/v1.0/iotControl/queryProcessResult
 
-# ms-iot-device（4）   /ms-vehicle-core（5，GW1/GW3 均 404）
+# ms-iot-device (4)   /ms-vehicle-core (5, 404 on both GW1/GW3)
 /ms-iot-device/api/v1.0/iot/{device,device/unbind,product,product/modelProductList}
 /ms-vehicle-core/api/v1.0/vehicle/{favorite-vehicles,enterprise-vehicles,set-default-vehicle,set-nick-name,set-plate-number}
 
-# ms-user-auth（13）
-/ms-user-auth/api/v1.0/auth/{scanLogin,cloud/temp/code}      <- temp/code 实测 000000
+# ms-user-auth (13)
+/ms-user-auth/api/v1.0/auth/{scanLogin,cloud/temp/code}      <- temp/code verified 000000
 /ms-user-auth/api/v1.0/{account/affection[/unbind],csp/{relation,resetPassword,user,verification/mobilePhone[/cspmobile]}}
 /ms-user-auth/api/v1.0/face/{delete,dhu-wakeup,pictureUpload,registered}
 
-# ms-vehicle-defence（电子围栏） / ms-vehicle-guard
+# ms-vehicle-defence (geofence) / ms-vehicle-guard
 /ms-vehicle-defence/api/v1.0/fence/{create,delete,enable,page,update}
 /ms-vehicle-guard/api/v1.0/sentinel/queryPhotoList
 ```
 
-## 车辆分享（CarShare）业务域 —— 一条完整的「合法授权」通道
+## Vehicle sharing (CarShare) business domain — a complete "legitimate authorization" channel
 
-`ms-tsp-user-vehicle` 上的 REST 全族（dex 原文，21 条）：
+The full REST family on `ms-tsp-user-vehicle` (dex originals, 21 routes):
 
 ```
-/ms-tsp-user-vehicle/api/v1.0/vehicle-shares/owner/share          创建分享
-/ms-tsp-user-vehicle/api/v1.0/vehicle-shares/owner/share-list     我分享出去的
+/ms-tsp-user-vehicle/api/v1.0/vehicle-shares/owner/share          create a share
+/ms-tsp-user-vehicle/api/v1.0/vehicle-shares/owner/share-list     shares I have sent out
 /ms-tsp-user-vehicle/api/v1.0/vehicle-shares/owner/share-histories
 /ms-tsp-user-vehicle/api/v1.0/vehicle-shares/owner/delete
-/ms-tsp-user-vehicle/api/v1.0/vehicle-shares/share/accept         接受分享
+/ms-tsp-user-vehicle/api/v1.0/vehicle-shares/share/accept         accept a share
 /ms-tsp-user-vehicle/api/v1.0/vehicle-shares/share/reject
 /ms-tsp-user-vehicle/api/v1.0/vehicle-shares/share/delete
-/ms-tsp-user-vehicle/api/v1.0/vehicle-shares/share/accept-list    我收到的分享
+/ms-tsp-user-vehicle/api/v1.0/vehicle-shares/share/accept-list    shares I have received
 /ms-tsp-user-vehicle/api/v1.0/vehicle-shares/share/accept-histories
 /ms-tsp-user-vehicle/api/v1.0/vehicle-shares/share/upload-base64
 /ms-tsp-user-vehicle/api/v1.0/vehicle-shares/share/social-sharing-info
 /ms-tsp-user-vehicle/api/v1.0/vehicle-shares/share-status
 /ms-tsp-user-vehicle/api/v1.0/vehicle-shares/details?shareId=
-/ms-tsp-user-vehicle/api/v1.0/vehicle-shares/services             可分享服务清单（SDK 门禁）
-/ms-tsp-user-vehicle/api/v1.0/vehicle-shares/check-share          校验被分享账号（SDK 门禁）
-/ms-tsp-user-vehicle/api/v1.0/vehicle-shares/update-auth          设置分享权限
+/ms-tsp-user-vehicle/api/v1.0/vehicle-shares/services             list of shareable services (SDK gate)
+/ms-tsp-user-vehicle/api/v1.0/vehicle-shares/check-share          validate the shared-to account (SDK gate)
+/ms-tsp-user-vehicle/api/v1.0/vehicle-shares/update-auth          set share permissions
 /ms-tsp-user-vehicle/api/v1.0/vehicle-shares/cancel
 /ms-tsp-user-vehicle/api/v1.0/vehicle-shares/finish
 /ms-tsp-user-vehicle/api/v1.0/vehicle-shares/force-cancel
 /ms-tsp-user-vehicle/api/v1.0/vehicle-shares/force-finish
 ```
 
-App 侧 UI 文案（dex）：侧边栏-车辆分享、创建车分享、接受车分享、拒绝车分享、结束车分享、
-设置车分享权限、添加分享账号、校验被分享账号、无法分享给自己、收到的车辆分享、车分享详情、
-分享码已复制、超过最大分享次数、分享数字钥匙已存在。
+App-side UI strings (dex): sidebar - vehicle sharing, create car share, accept car share, reject car share, finish car share,
+set car share permissions, add share account, validate the shared-to account, cannot share with yourself, car shares received, car share details,
+share code copied, maximum number of shares exceeded, shared digital key already exists.
 
-SDK（`com.geely.snc.sdk.carshare`，Geely CarShare SDK）：
-`IGLCarShareService` / `GLGeelyCarShareService` 方法：createCarShare、acceptCarShare、rejectCarShare、
-cancelCarShare、finishCarShare、updateCarShare、detailsCarShare、onwerListCarShare、
-acceptListCarShare、loopCarShareStatus、forceCancelCarShare、forceFinishCarShare、
-ownerDeleteCarShare、acceptDeleteCarShare、uploadBase64CarShare、getUrlCarShare、
-**queryVehicleServiceList**。
-请求 Bean：`GlCarShare{Create,Accept,Reject,Cancel,Finish,Update,Delete,Details,List,Loop,Url,Upload,VerifySharingUser,ForceCancel,ForceFinish}ReqBean`；
-响应：`GlCarShare{ServiceList,Condition,Details}RespBean`、`ShareDetailFunctionInfo`、`ServiceListBean`、
-`ShareVehVoHF(shareId=`、`VehicleShareBean.kt`。
+SDK (`com.geely.snc.sdk.carshare`, Geely CarShare SDK):
+`IGLCarShareService` / `GLGeelyCarShareService` methods: createCarShare, acceptCarShare, rejectCarShare,
+cancelCarShare, finishCarShare, updateCarShare, detailsCarShare, onwerListCarShare,
+acceptListCarShare, loopCarShareStatus, forceCancelCarShare, forceFinishCarShare,
+ownerDeleteCarShare, acceptDeleteCarShare, uploadBase64CarShare, getUrlCarShare,
+**queryVehicleServiceList**.
+Request Beans: `GlCarShare{Create,Accept,Reject,Cancel,Finish,Update,Delete,Details,List,Loop,Url,Upload,VerifySharingUser,ForceCancel,ForceFinish}ReqBean`;
+responses: `GlCarShare{ServiceList,Condition,Details}RespBean`, `ShareDetailFunctionInfo`, `ServiceListBean`,
+`ShareVehVoHF(shareId=`, `VehicleShareBean.kt`.
 
-**实测（本账号 16620192335）**：四个 list 端点全部 total=0 —— 这个号**既不是分享方也不是被分享方**，
-所以「非车主却有完整车控」并非来自车辆分享，而是 TSP 侧的直接绑定。
+**Verified (this account 16620192335)**: all four list endpoints return total=0 — this number is **neither a sharer nor a sharee**,
+so the "full vehicle control despite not being the owner" does not come from vehicle sharing, but from a direct binding on the TSP side.
 
-## 两条「换令牌」候选链（当前最高优先级）
+## Two candidate "token-exchange" chains (currently the highest priority)
 
-1. **场景码 → authCode → SNC 令牌**
-   `POST /zeekrlife-app-user/v1/user/toc/authCodeByServiceCode`（实测缺「场景代码」参数，参数名待定）
-   → `com.geely.snc.login` 的 `AuthLoginReqBean(authCode=)` → `AuthLoginRspBean(accessToken=)`
-   （`IGLAuthLoginService` / `GLAuthLoginServiceImpl` / `GLTokenInterceptor`）。
-   佐证：`PhoneModifyAuthCodeReq(scene=` ⇒「场景」就是 authCode 的入参概念；
-   `com.geely.snc.action.login.elsewhere` 即我们遇到的「登录被顶替」广播。
-2. **`AccessCodeReq(clientId=)` → `/zeekrlife-mp-auth2/v1/auth/accessCode`**（路由存在，动词待定）。
+1. **Scene code → authCode → SNC token**
+   `POST /zeekrlife-app-user/v1/user/toc/authCodeByServiceCode` (probed, missing the "scene code" parameter, parameter name to be determined)
+   → `com.geely.snc.login`'s `AuthLoginReqBean(authCode=)` → `AuthLoginRspBean(accessToken=)`
+   (`IGLAuthLoginService` / `GLAuthLoginServiceImpl` / `GLTokenInterceptor`).
+   Supporting evidence: `PhoneModifyAuthCodeReq(scene=` ⇒ "scene" is exactly the input concept of authCode;
+   `com.geely.snc.action.login.elsewhere` is the "logged in elsewhere / session taken over" broadcast we ran into.
+2. **`AccessCodeReq(clientId=)` → `/zeekrlife-mp-auth2/v1/auth/accessCode`** (route exists, verb to be determined).
 
-## 车控 SDK（原生层，SDK 令牌持有者）
+## Vehicle-control SDK (native layer, SDK-token holder)
 
-`com.zeekr.snc.vehicle`：`core/net/http/VclHttpApi|VclHttpReq|VclHttpRsp|VclHttpUrl|VclHttpParam`、
-`core/net/mqtt/VclMqttMsg|VclMqttRsp`（**MQTT 通道**）、`core/net/wifi/VclWifiSdk`、
-`iot/GLIotService`、`iot/utils/IIotTokenHelper`、`log/ITokenHelper`、`dlp/dmc/ZeekrDlcTokenHelper`、
-`utils/ZeekrENVKt`（`getVclCtrlApi$module_vehicle_release`）。
-⇒ SDK 令牌很可能经由 **IoT 令牌**体系下发。
+`com.zeekr.snc.vehicle`: `core/net/http/VclHttpApi|VclHttpReq|VclHttpRsp|VclHttpUrl|VclHttpParam`,
+`core/net/mqtt/VclMqttMsg|VclMqttRsp` (**MQTT channel**), `core/net/wifi/VclWifiSdk`,
+`iot/GLIotService`, `iot/utils/IIotTokenHelper`, `log/ITokenHelper`, `dlp/dmc/ZeekrDlcTokenHelper`,
+`utils/ZeekrENVKt` (`getVclCtrlApi$module_vehicle_release`).
+⇒ The SDK token is most likely delivered via the **IoT token** system.
 
-## 已收敛的请求头线索（dex 头名池）
+## Converged request-header clues (dex header-name pool)
 
-`X-TSP-PLATFORM`、`X-REGION-ID`、`X-A-Key`、`X-S-Key`、`X-Key-Token`、`X-APP-KEY`、`X-APIKEY`、
-`X-API-SIGNATURE-{NONCE,VERSION}`、`X-HMAC-{ACCESS-KEY,ALGORITHM,DIGEST,SIGNATURE}`、
-`X-ENCRYPTION-{KEY,KEY-ID,VERSION}`、`X-Request-CipheredOverlay{Key,IV,Version}`。
+`X-TSP-PLATFORM`, `X-REGION-ID`, `X-A-Key`, `X-S-Key`, `X-Key-Token`, `X-APP-KEY`, `X-APIKEY`,
+`X-API-SIGNATURE-{NONCE,VERSION}`, `X-HMAC-{ACCESS-KEY,ALGORITHM,DIGEST,SIGNATURE}`,
+`X-ENCRYPTION-{KEY,KEY-ID,VERSION}`, `X-Request-CipheredOverlay{Key,IV,Version}`.
 
-## 2026-09-18 深夜续：分享记录为空 vs 车主已分享 —— 需要 App 侧核对
+## 2026-09-18 late night continued: empty share records vs owner has already shared — needs cross-checking on the App side
 
-### 新增实测（GW3，令牌 `azp=user_center_client_phone`）
+### New probes (GW3, token `azp=user_center_client_phone`)
 
 ```
-GET  /ms-app-bff/api/1.0/permissions?tspPlatform=<n>   账号对该车的权限清单
-     数字 0/1/2 → 过参数校验但 079001（SDK 门禁）；字符串 → 000002 param check failed
-     ⇒ tspPlatform 是**数字枚举**（不是平台名），且该接口在 SDK 门禁内
-POST /ms-app-bff/api/v1.0/mntmode/authCode/ownerAuthorization   车主授权码 → 079001（SDK 门禁）
-POST /ms-app-bff/api/v1.0/certificate-center/getVehicleCertificate  车辆证书 → 079001
+GET  /ms-app-bff/api/1.0/permissions?tspPlatform=<n>   the account's permission list for this vehicle
+     numbers 0/1/2 → passes param validation but 079001 (SDK gate); strings → 000002 param check failed
+     ⇒ tspPlatform is a **numeric enum** (not a platform name), and this interface is behind the SDK gate
+POST /ms-app-bff/api/v1.0/mntmode/authCode/ownerAuthorization   owner authorization code → 079001 (SDK gate)
+POST /ms-app-bff/api/v1.0/certificate-center/getVehicleCertificate  vehicle certificate → 079001
 GET  /ms-vehicle-account/api/v1.0/vehicle-detail               → 079001
-POST /ms-tsp-user-setting/api/v1.0/userVeh/setting/query       → 000000 ok（可用）
-POST /ms-tsp-user-vehicle/.../vehicle-shares/share-status      唯一标识 = **traceId**
-     ⇒ 分享流程是「创建 → 返回 traceId → POST share-status 轮询」（对应 GlCarShareLoopReqBean(traceId=)）
-GET  /ms-user-auth/api/v1.0/auth/cloud/temp/code               → data.code = 32 位 hex 临时码（扫码登录用）
-     POST 同路径 → 000010（只收 GET）；/auth/scanLogin 也只收 POST
-POST /ms-user-auth/v1.0/auth/login（缺设备字段时）              → 000002 [设备ID不能为空, 设备类型不能为空]
-GET  /ms-user-auth/api/v1.0/account/affection（亲情账号）        → 00A01 404（不在 GW3）
+POST /ms-tsp-user-setting/api/v1.0/userVeh/setting/query       → 000000 ok (usable)
+POST /ms-tsp-user-vehicle/.../vehicle-shares/share-status      unique identifier = **traceId**
+     ⇒ the share flow is "create → returns traceId → POST share-status to poll" (matches GlCarShareLoopReqBean(traceId=))
+GET  /ms-user-auth/api/v1.0/auth/cloud/temp/code               → data.code = a 32-char hex temporary code (used for QR-scan login)
+     POST on the same path → 000010 (GET only); /auth/scanLogin is also POST only
+POST /ms-user-auth/v1.0/auth/login (when device fields are missing)  → 000002 [设备ID不能为空 (device ID cannot be empty), 设备类型不能为空 (device type cannot be empty)]
+GET  /ms-user-auth/api/v1.0/account/affection (family account)  → 00A01 404 (not on GW3)
 GET  /ms-user-middle... /ms-user-manager/api/v1.0/user/get/user/info → 00A01 404
 ```
 
-### `[SDK]` 门禁边界的完整画像（截至本轮）
+### The complete picture of the `[SDK]` gate boundary (as of this round)
 
-**被拒（079001 `[SDK]此接口未被授权，无法访问!`）**：`remoteControl/control`、`vehicle/status/*`、
-`shares/services`、`check-share`、`ms-app-bff/.../permissions`、`mntmode/authCode/ownerAuthorization`、
-`certificate-center/getVehicleCertificate`、`ms-vehicle-account/vehicle-detail`。
+**Rejected (079001 `[SDK]此接口未被授权，无法访问!` (interface not authorized, cannot be accessed))**: `remoteControl/control`, `vehicle/status/*`,
+`shares/services`, `check-share`, `ms-app-bff/.../permissions`, `mntmode/authCode/ownerAuthorization`,
+`certificate-center/getVehicleCertificate`, `ms-vehicle-account/vehicle-detail`.
 
-**放行**：`remoteControl/queryProcessResult`、`vehicle-shares` 的 4 个查询端点与写端点的参数校验层、
-`ms-tsp-user-setting/.../setting/query`、`ms-user-auth/.../temp/code`、
-`zeekrlife-app-user/.../{secretConfig, authCodeByServiceCode, validateAuthCode}`。
+**Allowed through**: `remoteControl/queryProcessResult`, the 4 query endpoints of `vehicle-shares` and the parameter-validation layer of the write endpoints,
+`ms-tsp-user-setting/.../setting/query`, `ms-user-auth/.../temp/code`,
+`zeekrlife-app-user/.../{secretConfig, authCodeByServiceCode, validateAuthCode}`.
 
-⇒ 门禁呈现为**接口白名单**，与 `X-VIN`、参数、账号车辆权限均无关（同一账号在 App 内可正常车控）。
+⇒ The gate presents as an **interface whitelist**, unrelated to `X-VIN`, parameters, or the account's vehicle permissions (the same account can control the vehicle normally inside the App).
 
-### 待核实的矛盾（需要 App 侧确认）
+### Contradiction to verify (needs confirmation on the App side)
 
-车主已把车分享给 `16620192335` 且「享有所有车控权限」，但接口侧：
+The owner has already shared the vehicle with `16620192335` and it "enjoys all vehicle-control permissions", but on the interface side:
 
 ```
 GET vehicle-shares/owner/share-list      → 000000 ok, total=0
@@ -502,11 +503,11 @@ GET vehicle-shares/share/accept-list     → 000000 ok, total=0
 GET vehicle-shares/{owner/share-histories, share/accept-histories} → 000000 ok, total=0
 ```
 
-即：**该号既不是分享方也不是被分享方（服务端视角）**。两种可能：
-1. 分享记录已过期/失效（App 文案有「授权已过期」「该分享已经失效」），
-   但账号仍保留 TSP 侧绑定 ⇒ 车控可用而分享列表为空；
-2. 车控权限来自**另一套绑定**（亲情账号 `account/affection`、家庭成员、企业车辆等），
-   而非 vehicle-shares。
+That is: **this number is neither a sharer nor a sharee (from the server's point of view)**. Two possibilities:
+1. The share record has expired/become invalid (App has strings like "authorization expired", "this share is no longer valid"),
+   but the account still keeps the TSP-side binding ⇒ vehicle control works while the share list is empty;
+2. The vehicle-control permission comes from **another binding** (family account `account/affection`, family members, enterprise vehicles, etc.),
+   rather than vehicle-shares.
 
-判据：车主 App →「我分享出去的」里那条记录的状态/有效期/权限项；
-以及该号在 App 内是否仍能实际车控（如闪灯/鸣笛）。
+Decision criteria: in the owner's App, under "shares I have sent out", the status / validity period / permission items of that record;
+and whether that number can still actually control the vehicle inside the App (e.g. flash the lights / honk).

@@ -314,9 +314,9 @@ def test_vehicle_display_name_priority():
     # A known platform code beats the backend trim, which is wrong for real
     # accounts (a 四座四驱 极氪 X comes back as "四座后驱版-001").
     assert parser.vehicle_display_name({"model": "四座后驱版-001",
-                                        "series": "BX1E"}) == "极氪 X"
-    assert parser.vehicle_display_name({"series": "BX1E"}) == "极氪 X"
-    assert parser.vehicle_display_name({"series": "DC1E"}) == "极氪 001"
+                                        "series": "BX1E"}) == "Zeekr X"
+    assert parser.vehicle_display_name({"series": "BX1E"}) == "Zeekr X"
+    assert parser.vehicle_display_name({"series": "DC1E"}) == "Zeekr 001"
 
 
 def test_unknown_series_keeps_backend_trim_without_catalogue_index():
@@ -577,3 +577,21 @@ def test_climate_presets_map_onto_the_ends_of_the_scale():
     assert parser.preset_setpoint(parser.PRESET_STANDARD) is None
     assert parser.preset_setpoint(None) is None
     assert parser.preset_setpoint("something-else") is None
+
+
+def test_charge_plan_from_get_charging_plan_new():
+    """Captured getChargingPlanNew payload (Chinese app, 2026-10-21)."""
+    raw = {
+        "chargePlan": {
+            "vin": None, "timerId": "2", "target": "2",
+            "startTime": "04:45", "endTime": "12:15", "command": "start",
+            "scheduledTime": None, "setting": "1", "bcTempActive": False,
+            "bcCycleActive": True, "updateTime": 1792606757875, "rbc": "2",
+        }
+    }
+    data = parser.normalize_vehicle_data(raw)
+    assert data["charge_plan"]["command"] == "start"
+    assert data["charge_plan"]["start_time"] == "04:45"
+    assert data["charge_plan"]["end_time"] == "12:15"
+    # The charging plan's own ``command`` must not leak into the departure plan.
+    assert data["travel_plan"]["command"] is None

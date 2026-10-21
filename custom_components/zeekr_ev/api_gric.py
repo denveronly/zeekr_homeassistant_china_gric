@@ -154,6 +154,10 @@ _REFRESH_TOKEN_LIFETIME = 30 * 24 * 3600
 _EXTRAS_TTL = {
     "chargingStatus": (3600.0, 120.0),  # 1 h idle / 2 min while charging
     "chargingLimit": (3600.0, 3600.0),  # 1 h either way — it is a *setting*
+    # Charging schedule as the app reads it (getChargingPlanNew?bizType=6).
+    # A setting too, but one people edit in the app, so 10 min; writes from HA
+    # drop the cache explicitly.
+    "chargePlan": (600.0, 600.0),
 }
 
 # Leaves that say whether the car is taking charge, used only to pick the TTL
@@ -758,6 +762,11 @@ class ZeekrGricApiClient:
             ("chargingLimit",
              "/ms-charge-manage/api/v1.0/charge/getLatestSoc",
              {"vin": vin, "tspPlatform": _PLATFORM}),
+            # Captured from the Chinese app: returns timerId / startTime /
+            # endTime / command ("start" = schedule on, "stop" = off).
+            ("chargePlan",
+             "/ms-charge-manage/api/v1.0/charge/getChargingPlanNew",
+             {"bizType": "6"}),
         ):
             cache_key = (vin, key)
             cached = self._extras_cache.get(cache_key)
@@ -942,6 +951,7 @@ class ZeekrGricApiClient:
             raise ZeekrApiError(
                 f"GRIC rejected the charging schedule: {_result_brief(result)}"
             )
+        self.invalidate_extras(vin)
         return {**result, "gateway": "gric"}
 
     async def async_set_travel_plan(self, vin: str, command: str,

@@ -1173,11 +1173,14 @@ def normalize_vehicle_data(raw: Any, meta: dict[str, Any] | None = None) -> dict
         "bc_cycle": _lookup(index, "charge_plan_bc_cycle"),
         "bc_temp": _lookup(index, "charge_plan_bc_temp"),
     }
+    # The charging-plan payload (``chargePlan``) has its own ``command`` /
+    # ``scheduledTime``; never let the departure plan pick those up.
+    not_charge_plan = ("chargeplan",)
     canonical["travel_plan"] = {
-        "command": _lookup(index, "travel_plan_command"),
-        "scheduled_time": _lookup(index, "travel_plan_time"),
-        "ac": _lookup(index, "travel_plan_ac"),
-        "steering_wheel_heat": _lookup(index, "travel_plan_swh"),
+        "command": _lookup(index, "travel_plan_command", exclude=not_charge_plan),
+        "scheduled_time": _lookup(index, "travel_plan_time", exclude=not_charge_plan),
+        "ac": _lookup(index, "travel_plan_ac", exclude=not_charge_plan),
+        "steering_wheel_heat": _lookup(index, "travel_plan_swh", exclude=not_charge_plan),
     }
 
     return canonical

@@ -179,6 +179,12 @@ paste the values again; no need to delete the integration.
   ⚠️ Entities that already exist don't disappear automatically; delete them under
   Settings → Devices & services → Entities.
 
+## Dashboard card
+
+A ready-made Zeekr 001 card (top-view photo with door / window / trunk / charge
+port controls, plus Charging and Climate drop-downs) is in
+[`dashboard/`](dashboard/README.md).
+
 ## Actions
 
 | Action | Description |

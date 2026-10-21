@@ -39,10 +39,12 @@ BUTTON_SPECS: tuple[ButtonSpec, ...] = (
         "start", "RHL",
         {"serviceParameters": [{"key": "rhl", "value": "horn-light-flash"}]},
     ),
-    # Captured from the Chinese app on 2026-10-21: the trunk button sends
-    # RDU start with target=trunk (unlocks / pops the tailgate).
+    # Captured from the Chinese app on 2026-10-21: opening AND closing the
+    # power tailgate both send RDU start with target=trunk; the car toggles.
+    # The app asks for the vehicle PIN before closing, but that check happens
+    # app-side only: the command itself carries no PIN proof.
     ButtonSpec(
-        "open_trunk", "Open trunk", "mdi:car-back",
+        "open_trunk", "Trunk open / close", "mdi:car-back",
         "start", "RDU",
         {"serviceParameters": [{"key": "target", "value": "trunk"}]},
     ),

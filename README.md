@@ -37,7 +37,7 @@ pick decides whether you can control the car**.
 | `cover` | Sunshade, all windows |
 | `select` | Seat heating (driver, passenger, rear), seat ventilation (driver, passenger): Off / Level 1–3 |
 | `number` | Charge limit (50–100 %), climate run duration (1–60 min) |
-| `button` | Flash lights, horn and flash, open trunk, turn off parking comfort, rapid cooling, rapid heating, refresh now |
+| `button` | Flash lights, horn and flash, trunk open / close (toggle), turn off parking comfort, rapid cooling, rapid heating, refresh now |
 | `time` / `datetime` | Charging schedule start / end, scheduled departure time |
 
 > **On the SMS channel only the status entities work.** `sensor` / `binary_sensor` / `device_tracker`

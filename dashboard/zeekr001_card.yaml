@@ -4,8 +4,8 @@
 #  1. Replace every  CAR_  below with your car's entity prefix.
 #     Find it in Settings -> Devices & services -> Entities, search "battery level":
 #     if it is  sensor.zeekr_001_battery_level  then CAR_ -> zeekr_001_
-#  2. Save a top-view photo of the car (front pointing UP, transparent or plain
-#     background, ~800x1200 px) as  /config/www/zeekr001_top.png
+#  2. Save the transparent top-view image (zeekr001_top.png, 600x700, front
+#     pointing UP) as  /config/www/zeekr001_top.png
 #     (it is served as /local/zeekr001_top.png; restart HA if www/ is new)
 #  3. Install "Expander Card" from HACS (for the Charging / Climate drop-downs)
 #
@@ -43,52 +43,52 @@ cards:
       - type: state-icon
         entity: binary_sensor.CAR_door_front_left
         icon: mdi:car-door
-        style: {left: 18%, top: 40%}
+        style: {left: 19%, top: 42%}
       - type: state-icon
         entity: binary_sensor.CAR_door_front_right
         icon: mdi:car-door
-        style: {left: 82%, top: 40%}
+        style: {left: 81%, top: 42%}
       - type: state-icon
         entity: binary_sensor.CAR_door_rear_left
         icon: mdi:car-door
-        style: {left: 18%, top: 60%}
+        style: {left: 19%, top: 61%}
       - type: state-icon
         entity: binary_sensor.CAR_door_rear_right
         icon: mdi:car-door
-        style: {left: 82%, top: 60%}
+        style: {left: 81%, top: 61%}
       # windows (state only)
       - type: state-icon
         entity: binary_sensor.CAR_window_front_left
         icon: mdi:car-door-lock
-        style: {left: 30%, top: 40%}
+        style: {left: 32%, top: 42%}
       - type: state-icon
         entity: binary_sensor.CAR_window_front_right
         icon: mdi:car-door-lock
-        style: {left: 70%, top: 40%}
+        style: {left: 68%, top: 42%}
       - type: state-icon
         entity: binary_sensor.CAR_window_rear_left
         icon: mdi:car-door-lock
-        style: {left: 30%, top: 60%}
+        style: {left: 32%, top: 61%}
       - type: state-icon
         entity: binary_sensor.CAR_window_rear_right
         icon: mdi:car-door-lock
-        style: {left: 70%, top: 60%}
+        style: {left: 68%, top: 61%}
       # all windows - the one real window control (tap = open/close)
       - type: state-icon
         entity: cover.CAR_all_windows
         icon: mdi:window-shutter
         tap_action: {action: toggle}
         hold_action: {action: more-info}
-        style: {left: 50%, top: 50%}
+        style: {left: 50%, top: 51%}
       # hood / trunk state
       - type: state-icon
         entity: binary_sensor.CAR_hood
         icon: mdi:car-select
-        style: {left: 50%, top: 12%}
+        style: {left: 50%, top: 13%}
       - type: state-icon
         entity: binary_sensor.CAR_trunk
         icon: mdi:car-back
-        style: {left: 50%, top: 86%}
+        style: {left: 50%, top: 85%}
       # trunk open / close (the car toggles; asks to confirm)
       - type: icon
         icon: mdi:arrow-up-down-bold
@@ -98,7 +98,7 @@ cards:
           perform_action: button.press
           target: {entity_id: button.CAR_trunk_open_close}
           confirmation: {text: "Open / close the trunk? Make sure nobody is near it."}
-        style: {left: 50%, top: 94%, color: var(--primary-color)}
+        style: {left: 50%, top: 93%, color: var(--primary-color)}
       # charge port lid - toggle (locked = closed, unlocked = open)
       - type: state-icon
         entity: lock.CAR_charge_port_lid
@@ -107,23 +107,23 @@ cards:
           action: toggle
           confirmation: {text: "Open / close the charge port lid?"}
         hold_action: {action: more-info}
-        style: {left: 14%, top: 76%}
+        style: {left: 17%, top: 76%}
       - type: state-label
         entity: lock.CAR_charge_port_lid
-        style: {left: 14%, top: 82%, font-size: 11px}
+        style: {left: 17%, top: 81%, font-size: 11px}
       # tyre pressures at the wheels
       - type: state-label
         entity: sensor.CAR_tire_pressure_front_left
-        style: {left: 10%, top: 24%, font-size: 12px}
+        style: {left: 11%, top: 22%, font-size: 12px}
       - type: state-label
         entity: sensor.CAR_tire_pressure_front_right
-        style: {left: 90%, top: 24%, font-size: 12px}
+        style: {left: 89%, top: 22%, font-size: 12px}
       - type: state-label
         entity: sensor.CAR_tire_pressure_rear_left
-        style: {left: 10%, top: 70%, font-size: 12px}
+        style: {left: 11%, top: 90%, font-size: 12px}
       - type: state-label
         entity: sensor.CAR_tire_pressure_rear_right
-        style: {left: 90%, top: 70%, font-size: 12px}
+        style: {left: 89%, top: 90%, font-size: 12px}
 
   # ---------- quick actions ----------
   - type: grid

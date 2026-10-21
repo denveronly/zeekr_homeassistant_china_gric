@@ -1,5 +1,7 @@
 # Zeekr 001 dashboard card
 
+> The card now lives in its own repo: **[denveronly/zeekr-ha-custom-card](https://github.com/denveronly/zeekr-ha-custom-card)**. The copy here may lag behind.
+
 A Home Assistant dashboard card for this integration: key numbers at the top, a
 top-view photo of the car with door / window / hood / trunk state badges, an
 "All windows" control, a trunk open / close button and a charge port lid toggle

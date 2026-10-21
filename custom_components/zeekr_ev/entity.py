@@ -129,7 +129,7 @@ class VehicleEntityManager:
         for vin in new_vins:
             if len(self._known) >= _MAX_VEHICLES:
                 _LOGGER.warning(
-                    "已达车辆上限 %d，忽略 %s", _MAX_VEHICLES, vin
+                    "Vehicle limit %d reached, ignoring %s", _MAX_VEHICLES, vin
                 )
                 break
             self._known.add(vin)
@@ -147,7 +147,7 @@ class VehicleEntityManager:
             entities.extend(created)
 
         if entities:
-            _LOGGER.debug("为 %s 创建了 %d 个实体", new_vins, len(entities))
+            _LOGGER.debug("Created entities for %s: %d", new_vins, len(entities))
             self._async_add_entities(entities)
 
     @callback

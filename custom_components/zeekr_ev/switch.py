@@ -70,7 +70,7 @@ class ZeekrChargingSwitch(ZeekrSwitchBase):
     """Start / stop charging."""
 
     def __init__(self, coordinator: ZeekrCoordinator, vin: str) -> None:
-        super().__init__(coordinator, vin, "charging", "充电", "mdi:battery-charging")
+        super().__init__(coordinator, vin, "charging", "Charging", "mdi:battery-charging")
 
     @property
     def is_on(self) -> bool | None:
@@ -89,7 +89,7 @@ class ZeekrDefrostSwitch(ZeekrSwitchBase):
     """Front defroster."""
 
     def __init__(self, coordinator: ZeekrCoordinator, vin: str) -> None:
-        super().__init__(coordinator, vin, "defrost", "前风挡除霜", "mdi:car-defrost-front")
+        super().__init__(coordinator, vin, "defrost", "Windshield defrost", "mdi:car-defrost-front")
 
     @property
     def is_on(self) -> bool | None:
@@ -111,7 +111,7 @@ class ZeekrSteeringWheelHeatSwitch(ZeekrSwitchBase):
 
     def __init__(self, coordinator: ZeekrCoordinator, vin: str) -> None:
         super().__init__(coordinator, vin, "steering_wheel_heat",
-                         "方向盘加热", "mdi:steering")
+                         "Steering wheel heating", "mdi:steering")
 
     @property
     def is_on(self) -> bool | None:
@@ -142,7 +142,7 @@ class ZeekrSentrySwitch(ZeekrSwitchBase):
     """
 
     def __init__(self, coordinator: ZeekrCoordinator, vin: str) -> None:
-        super().__init__(coordinator, vin, "sentry", "哨兵模式", "mdi:cctv")
+        super().__init__(coordinator, vin, "sentry", "Sentry mode", "mdi:cctv")
 
     @property
     def is_on(self) -> bool | None:
@@ -161,7 +161,7 @@ class ZeekrChargePlanSwitch(ZeekrSwitchBase):
     """Enable / disable the charging schedule."""
 
     def __init__(self, coordinator: ZeekrCoordinator, vin: str) -> None:
-        super().__init__(coordinator, vin, "charge_plan", "充电计划", "mdi:calendar-clock")
+        super().__init__(coordinator, vin, "charge_plan", "Charging schedule", "mdi:calendar-clock")
 
     @property
     def is_on(self) -> bool | None:
@@ -193,7 +193,7 @@ class ZeekrTravelPlanSwitch(ZeekrSwitchBase):
     """Enable / disable the departure (travel) plan."""
 
     def __init__(self, coordinator: ZeekrCoordinator, vin: str) -> None:
-        super().__init__(coordinator, vin, "travel_plan", "出行计划", "mdi:car-clock")
+        super().__init__(coordinator, vin, "travel_plan", "Departure schedule", "mdi:car-clock")
 
     @property
     def is_on(self) -> bool | None:
@@ -224,7 +224,7 @@ class ZeekrDepartureACSwitch(ZeekrSwitchBase):
     """Pre-condition the cabin before departure."""
 
     def __init__(self, coordinator: ZeekrCoordinator, vin: str) -> None:
-        super().__init__(coordinator, vin, "departure_ac", "出行空调", "mdi:air-conditioner")
+        super().__init__(coordinator, vin, "departure_ac", "Departure climate", "mdi:air-conditioner")
 
     @property
     def is_on(self) -> bool | None:

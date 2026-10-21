@@ -465,7 +465,7 @@ class ZeekrGricApiClient:
         """
         if requires_access and not self._access_token:
             raise ZeekrAuthError(
-                "GRIC 未配置访问令牌：请在集成配置中粘贴 refreshToken。"
+                "GRIC has no access token: paste a refreshToken in the integration config."
             )
 
         nonce = str(uuid.uuid4())
@@ -507,7 +507,7 @@ class ZeekrGricApiClient:
         except ZeekrError:
             raise
         except Exception as exc:  # noqa: BLE001
-            raise ZeekrApiError(f"GRIC 请求失败（{path}）：{exc}") from exc
+            raise ZeekrApiError(f"GRIC request failed ({path}): {exc}") from exc
 
         if not isinstance(result, dict):
             result = {"code": str(status), "msg": str(result)[:200]}
@@ -519,20 +519,20 @@ class ZeekrGricApiClient:
         # refresh token is the cure, and it costs one request.
         if (retry_auth and code in _RELOGIN_CODES
                 and self._refresh_token):
-            _LOGGER.debug("GRIC 令牌已失效（%s），尝试刷新后重试", code)
+            _LOGGER.debug("GRIC token invalid (%s), refreshing and retrying", code)
             if await self.async_refresh():
                 return await self._request(method, host, path, query, payload,
                                            with_identifier=with_identifier,
                                            retry_auth=False)
             raise ZeekrAuthError(
-                "GRIC 会话已失效且刷新失败，请在「设置 → 设备与服务 → 极氪 → "
-                f"重新认证」中粘贴新的 refreshToken。服务端返回：{_result_brief(result)}"
+                "GRIC session expired and refresh failed. In Settings → Devices & services → Zeekr → "
+                f"Reconfigure, paste a new refreshToken. Server said: {_result_brief(result)}"
             )
 
         if code in _RELOGIN_CODES:
             raise ZeekrAuthError(
-                "GRIC 会话已失效，请在集成中重新认证。"
-                f"服务端返回：{_result_brief(result)}"
+                "GRIC session expired, please re-authenticate the integration. "
+                f"Server said: {_result_brief(result)}"
             )
         if code in _MISSING_HEADER_CODES and isinstance(result.get("msg"), str):
             # 00A02 names the header it wanted, which is the fastest way to see
@@ -540,8 +540,8 @@ class ZeekrGricApiClient:
             message = result["msg"]
             if any(marker in message.lower() for marker in _BAD_IDENT_MARKERS):
                 raise ZeekrApiError(
-                    "GRIC 车辆接口需要 x-vehicle-identifier，但集成配置里没有它。"
-                    "请在「配置 → 选项」中填入该车的 identifier（见 README）。"
+                    "GRIC vehicle API needs x-vehicle-identifier, but it is not configured. "
+                    "Enter it under Configure → Options (see README)."
                 )
         return result
 
@@ -590,11 +590,11 @@ class ZeekrGricApiClient:
         except ZeekrAuthError as exc:
             # The endpoint itself declaring the token dead (``1018P061``).
             self._token_log.append({"event": "refresh_rejected", "error": str(exc)})
-            _LOGGER.warning("GRIC 刷新令牌被拒: %s", exc)
+            _LOGGER.warning("GRIC token refresh rejected: %s", exc)
             return False
         except ZeekrError as exc:
             self._token_log.append({"event": "refresh_failed", "error": str(exc)})
-            _LOGGER.warning("GRIC 刷新令牌失败: %s", exc)
+            _LOGGER.warning("GRIC token refresh failed: %s", exc)
             return False
 
         data = _payload_of(result) or {}
@@ -605,7 +605,7 @@ class ZeekrGricApiClient:
                 "event": "refresh_rejected",
                 "response": _result_brief(result),
             })
-            _LOGGER.warning("GRIC 刷新令牌被拒: %s", _result_brief(result))
+            _LOGGER.warning("GRIC token refresh rejected: %s", _result_brief(result))
             return False
 
         self._access_token = access
@@ -618,7 +618,7 @@ class ZeekrGricApiClient:
             "refresh_expires": data.get("refreshExpiresTimestamp"),
             "rotated": bool(refresh),
         })
-        _LOGGER.debug("GRIC 令牌已刷新（轮换=%s）", bool(refresh))
+        _LOGGER.debug("GRIC token refreshed (rotated=%s)", bool(refresh))
         return True
 
     async def async_ensure_gw3_token(self) -> bool:
@@ -764,7 +764,7 @@ class ZeekrGricApiClient:
                     extras[key] = data
                     continue
             except Exception as exc:  # noqa: BLE001 - extras are optional
-                _LOGGER.debug("GRIC %s 获取失败（%s）: %s", key, vin, exc)
+                _LOGGER.debug("GRIC %s fetch failed (%s): %s", key, vin, exc)
             if cached is not None:
                 extras[key] = cached[1]
         return extras
@@ -797,8 +797,8 @@ class ZeekrGricApiClient:
         """Resume from a stored refresh token: refresh, then list cars."""
         if not self._refresh_token:
             raise ZeekrAuthError(
-                "GRIC 配置缺少 refreshToken，无法建立会话。"
-                "请到「设置 → 设备与服务 → 极氪 → 重新认证」粘贴一次。"
+                "GRIC config is missing refreshToken; cannot open a session. "
+                "Paste one under Settings → Devices & services → Zeekr → Reconfigure."
             )
         await self.async_ensure_gw3_token()
         return await self.async_get_vehicle_list()
@@ -869,7 +869,7 @@ class ZeekrGricApiClient:
         self._command_attempts[-1]["msg"] = result.get("msg")
         if not _accepted(result):
             raise ZeekrApiError(
-                f"GRIC 拒绝了指令 {service_id}：{_result_brief(result)}"
+                f"GRIC rejected command {service_id}: {_result_brief(result)}"
             )
         # ``RCS`` writes the charging limit — which is cached for up to 30
         # minutes.  Without this the entity would show the old value until the
@@ -885,9 +885,9 @@ class ZeekrGricApiClient:
         if self._access_token_fresh() or await self.async_ensure_gw3_token():
             return
         raise ZeekrAuthError(
-            "无法下发指令：没有可用的 GRIC 访问令牌，自动刷新也失败。"
-            f"最后一次错误：{self._last_error or '未知'}。"
-            "请在集成中重新认证以粘贴新的 refreshToken。"
+            "Cannot send command: no GRIC access token and automatic refresh failed. "
+            f"Last error: {self._last_error or 'unknown'}. "
+            "Re-authenticate the integration with a new refreshToken."
         )
 
     async def async_set_charge_plan(self, vin: str, start_time: str,
@@ -918,7 +918,7 @@ class ZeekrGricApiClient:
         )
         if not _accepted(result):
             raise ZeekrApiError(
-                f"GRIC 拒绝了充电计划：{_result_brief(result)}"
+                f"GRIC rejected the charging schedule: {_result_brief(result)}"
             )
         return {**result, "gateway": "gric"}
 
@@ -943,7 +943,7 @@ class ZeekrGricApiClient:
         )
         if not _accepted(result):
             raise ZeekrApiError(
-                f"GRIC 拒绝了行程计划：{_result_brief(result)}"
+                f"GRIC rejected the departure schedule: {_result_brief(result)}"
             )
         return {**result, "gateway": "gric"}
 

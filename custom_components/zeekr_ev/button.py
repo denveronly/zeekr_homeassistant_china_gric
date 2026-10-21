@@ -30,26 +30,26 @@ class ButtonSpec:
 
 BUTTON_SPECS: tuple[ButtonSpec, ...] = (
     ButtonSpec(
-        "flash_blinkers", "闪灯", "mdi:car-light-alert",
+        "flash_blinkers", "Flash lights", "mdi:car-light-alert",
         "start", "RHL",
         {"serviceParameters": [{"key": "rhl", "value": "light-flash"}]},
     ),
     ButtonSpec(
-        "honk_flash", "鸣笛并闪灯", "mdi:bullhorn",
+        "honk_flash", "Horn and flash", "mdi:bullhorn",
         "start", "RHL",
         {"serviceParameters": [{"key": "rhl", "value": "horn-light-flash"}]},
     ),
     ButtonSpec(
-        "parking_comfort_off", "关闭驻车舒适", "mdi:car-seat-cooler",
+        "parking_comfort_off", "Turn off parking comfort", "mdi:car-seat-cooler",
         "stop", "PCM",
         {"serviceParameters": [{"key": "parking_comfortable", "value": "false"}]},
     ),
     # The App's 极速制冷 / 极速制热.  Their own command was never captured, so
     # these push the setpoint to the end of the scale — see
     # ``parser.preset_setpoint``.
-    ButtonSpec("quick_cool", "极速降温", "mdi:snowflake",
+    ButtonSpec("quick_cool", "Rapid cooling", "mdi:snowflake",
                preset=PRESET_QUICK_COOL),
-    ButtonSpec("quick_heat", "极速升温", "mdi:heat-wave",
+    ButtonSpec("quick_heat", "Rapid heating", "mdi:heat-wave",
                preset=PRESET_QUICK_HEAT),
 )
 
@@ -96,7 +96,7 @@ class ZeekrCommandButton(ZeekrEntity, ButtonEntity):
 class ZeekrRefreshButton(ZeekrEntity, ButtonEntity):
     """Force an immediate poll (and vehicle rediscovery)."""
 
-    _attr_name = "立即刷新"
+    _attr_name = "Refresh now"
     _attr_icon = "mdi:refresh"
 
     def __init__(self, coordinator: ZeekrCoordinator, vin: str) -> None:

@@ -17,7 +17,7 @@ from .coordinator import ZeekrCoordinator
 from .entity import VehicleEntityManager, ZeekrEntity
 
 _POSITIONS = ("fl", "fr", "rl", "rr")
-_POS_LABEL = {"fl": "左前", "fr": "右前", "rl": "左后", "rr": "右后"}
+_POS_LABEL = {"fl": "front left", "fr": "front right", "rl": "rear left", "rr": "rear right"}
 
 
 @dataclass(frozen=True)
@@ -31,35 +31,35 @@ class BinarySpec:
 
 def _build_specs() -> list[BinarySpec]:
     specs: list[BinarySpec] = [
-        BinarySpec("charging", "充电中", ("battery", "charging"),
+        BinarySpec("charging", "Charging", ("battery", "charging"),
                    BinarySensorDeviceClass.BATTERY_CHARGING),
-        BinarySpec("plugged_in", "已连接充电枪", ("battery", "plugged"),
+        BinarySpec("plugged_in", "Charger plugged in", ("battery", "plugged"),
                    BinarySensorDeviceClass.PLUG),
-        BinarySpec("door_open_fl", "左前门", ("doors", "fl"),
+        BinarySpec("door_open_fl", "Door front left", ("doors", "fl"),
                    BinarySensorDeviceClass.DOOR),
-        BinarySpec("door_open_fr", "右前门", ("doors", "fr"),
+        BinarySpec("door_open_fr", "Door front right", ("doors", "fr"),
                    BinarySensorDeviceClass.DOOR),
-        BinarySpec("door_open_rl", "左后门", ("doors", "rl"),
+        BinarySpec("door_open_rl", "Door rear left", ("doors", "rl"),
                    BinarySensorDeviceClass.DOOR),
-        BinarySpec("door_open_rr", "右后门", ("doors", "rr"),
+        BinarySpec("door_open_rr", "Door rear right", ("doors", "rr"),
                    BinarySensorDeviceClass.DOOR),
-        BinarySpec("trunk_open", "后备箱", ("doors", "trunk"),
+        BinarySpec("trunk_open", "Trunk", ("doors", "trunk"),
                    BinarySensorDeviceClass.DOOR),
-        BinarySpec("hood_open", "前机盖", ("doors", "hood"),
+        BinarySpec("hood_open", "Hood", ("doors", "hood"),
                    BinarySensorDeviceClass.DOOR),
-        BinarySpec("window_open_fl", "左前车窗", ("windows", "fl"),
+        BinarySpec("window_open_fl", "Window front left", ("windows", "fl"),
                    BinarySensorDeviceClass.WINDOW),
-        BinarySpec("window_open_fr", "右前车窗", ("windows", "fr"),
+        BinarySpec("window_open_fr", "Window front right", ("windows", "fr"),
                    BinarySensorDeviceClass.WINDOW),
-        BinarySpec("window_open_rl", "左后车窗", ("windows", "rl"),
+        BinarySpec("window_open_rl", "Window rear left", ("windows", "rl"),
                    BinarySensorDeviceClass.WINDOW),
-        BinarySpec("window_open_rr", "右后车窗", ("windows", "rr"),
+        BinarySpec("window_open_rr", "Window rear right", ("windows", "rr"),
                    BinarySensorDeviceClass.WINDOW),
     ]
     for pos in _POSITIONS:
         specs.append(
             BinarySpec(
-                f"tyre_warning_{pos}", f"胎压报警 {_POS_LABEL[pos]}",
+                f"tyre_warning_{pos}", f"Tire pressure warning {_POS_LABEL[pos]}",
                 ("tyres", "pressure_warning", pos),
                 BinarySensorDeviceClass.PROBLEM,
             )

@@ -33,7 +33,7 @@ from .coordinator import ZeekrCoordinator
 from .entity import VehicleEntityManager, ZeekrEntity
 
 _TYRE_POSITIONS = ("fl", "fr", "rl", "rr")
-_TYRE_LABEL = {"fl": "左前", "fr": "右前", "rl": "左后", "rr": "右后"}
+_TYRE_LABEL = {"fl": "front left", "fr": "front right", "rl": "rear left", "rr": "rear right"}
 
 # No standard HA unit for consumption; keep the string the car reports.
 _CONSUMPTION_UNIT = "kWh/100km"
@@ -58,63 +58,63 @@ def _build_specs() -> list[SensorSpec]:
     specs: list[SensorSpec] = [
         # -- drive / energy ---------------------------------------------
         SensorSpec(
-            "battery_level", "电量", ("battery", "soc"),
+            "battery_level", "Battery level", ("battery", "soc"),
             SensorDeviceClass.BATTERY, SensorStateClass.MEASUREMENT,
             PERCENTAGE, "mdi:battery",
         ),
         SensorSpec(
-            "range", "续航", ("battery", "range"),
+            "range", "Range", ("battery", "range"),
             SensorDeviceClass.DISTANCE, SensorStateClass.MEASUREMENT,
             UnitOfLength.KILOMETERS, "mdi:map-marker-distance",
         ),
         SensorSpec(
-            "odometer", "总里程", ("odometer",),
+            "odometer", "Odometer", ("odometer",),
             SensorDeviceClass.DISTANCE, SensorStateClass.TOTAL_INCREASING,
             UnitOfLength.KILOMETERS, "mdi:counter",
         ),
         SensorSpec(
-            "speed", "车速", ("safety", "speed"),
+            "speed", "Speed", ("safety", "speed"),
             SensorDeviceClass.SPEED, SensorStateClass.MEASUREMENT,
             UnitOfSpeed.KILOMETERS_PER_HOUR, "mdi:speedometer",
         ),
         SensorSpec(
-            "power_consumption", "平均能耗", ("battery", "power_consumption"),
+            "power_consumption", "Average consumption", ("battery", "power_consumption"),
             None, None, _CONSUMPTION_UNIT, "mdi:lightning-bolt-outline",
         ),
         # -- climate ----------------------------------------------------
         SensorSpec(
-            "inside_temperature", "车内温度", ("climate", "inside_temp"),
+            "inside_temperature", "Interior temperature", ("climate", "inside_temp"),
             SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT,
             UnitOfTemperature.CELSIUS, "mdi:thermometer",
         ),
         SensorSpec(
-            "outside_temperature", "车外温度", ("climate", "outside_temp"),
+            "outside_temperature", "Exterior temperature", ("climate", "outside_temp"),
             SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT,
             UnitOfTemperature.CELSIUS, "mdi:thermometer-lines",
         ),
         SensorSpec(
-            "climate_target_temperature", "空调设定温度", ("climate", "target_temp"),
+            "climate_target_temperature", "Climate set temperature", ("climate", "target_temp"),
             SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT,
             UnitOfTemperature.CELSIUS, "mdi:thermostat",
         ),
         # -- charging ---------------------------------------------------
         SensorSpec(
-            "charge_power", "充电功率", ("battery", "power"),
+            "charge_power", "Charging power", ("battery", "power"),
             SensorDeviceClass.POWER, SensorStateClass.MEASUREMENT,
             UnitOfPower.KILO_WATT, "mdi:flash",
         ),
         SensorSpec(
-            "charge_voltage", "充电电压", ("battery", "voltage"),
+            "charge_voltage", "Charging voltage", ("battery", "voltage"),
             SensorDeviceClass.VOLTAGE, SensorStateClass.MEASUREMENT,
             UnitOfElectricPotential.VOLT, "mdi:sine-wave",
         ),
         SensorSpec(
-            "charge_current", "充电电流", ("battery", "current"),
+            "charge_current", "Charging current", ("battery", "current"),
             SensorDeviceClass.CURRENT, SensorStateClass.MEASUREMENT,
             UnitOfElectricCurrent.AMPERE, "mdi:current-ac",
         ),
         SensorSpec(
-            "remaining_charge_time", "预计充满时间", ("battery", "remaining_minutes"),
+            "remaining_charge_time", "Estimated full charge time", ("battery", "remaining_minutes"),
             SensorDeviceClass.DURATION, SensorStateClass.MEASUREMENT,
             UnitOfTime.MINUTES, "mdi:timer-sand",
         ),
@@ -126,29 +126,29 @@ def _build_specs() -> list[SensorSpec]:
         # state of charge.  The icon still says "charging limit"; only the
         # class — which is what makes a number *the* battery — is dropped.
         SensorSpec(
-            "charge_limit", "充电上限", ("battery", "limit"),
+            "charge_limit", "Charge limit", ("battery", "limit"),
             None, None,
             PERCENTAGE, "mdi:battery-charging-high",
         ),
         # -- 12 V aux battery ------------------------------------------
         SensorSpec(
-            "aux_battery_voltage", "12V电瓶电压", ("battery12v", "voltage"),
+            "aux_battery_voltage", "12V battery voltage", ("battery12v", "voltage"),
             SensorDeviceClass.VOLTAGE, SensorStateClass.MEASUREMENT,
             UnitOfElectricPotential.VOLT, "mdi:car-battery",
         ),
         SensorSpec(
-            "aux_battery_level", "12V电瓶电量", ("battery12v", "soc"),
+            "aux_battery_level", "12V battery level", ("battery12v", "soc"),
             None, SensorStateClass.MEASUREMENT,
             PERCENTAGE, "mdi:car-battery",
         ),
         # -- cabin air / service ---------------------------------------
         SensorSpec(
-            "service_distance", "保养剩余里程", ("service", "distance_to_service"),
+            "service_distance", "Service distance remaining", ("service", "distance_to_service"),
             SensorDeviceClass.DISTANCE, None,
             UnitOfLength.KILOMETERS, "mdi:wrench-clock",
         ),
         SensorSpec(
-            "service_days", "保养剩余天数", ("service", "days_to_service"),
+            "service_days", "Service days remaining", ("service", "days_to_service"),
             SensorDeviceClass.DURATION, None,
             UnitOfTime.DAYS, "mdi:calendar-clock",
         ),
@@ -157,7 +157,7 @@ def _build_specs() -> list[SensorSpec]:
         # uploaded.  This is what tells you whether a lagging value is Home
         # Assistant polling too slowly or the car simply not reporting.
         SensorSpec(
-            "report_time", "车况上报时间", ("report_time",),
+            "report_time", "Last status report", ("report_time",),
             SensorDeviceClass.TIMESTAMP, None,
             None, "mdi:clock-check-outline",
             category=EntityCategory.DIAGNOSTIC,
@@ -167,7 +167,7 @@ def _build_specs() -> list[SensorSpec]:
     for pos in _TYRE_POSITIONS:
         specs.append(
             SensorSpec(
-                f"tyre_pressure_{pos}", f"胎压 {_TYRE_LABEL[pos]}",
+                f"tyre_pressure_{pos}", f"Tire pressure {_TYRE_LABEL[pos]}",
                 ("tyres", "pressure", pos),
                 SensorDeviceClass.PRESSURE, SensorStateClass.MEASUREMENT,
                 UnitOfPressure.KPA, "mdi:car-tire-alert",
@@ -175,7 +175,7 @@ def _build_specs() -> list[SensorSpec]:
         )
         specs.append(
             SensorSpec(
-                f"tyre_temperature_{pos}", f"胎温 {_TYRE_LABEL[pos]}",
+                f"tyre_temperature_{pos}", f"Tire temperature {_TYRE_LABEL[pos]}",
                 ("tyres", "temp", pos),
                 SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT,
                 UnitOfTemperature.CELSIUS, "mdi:thermometer",

@@ -718,7 +718,7 @@ def _normalise_coords(latitude: Any, longitude: Any
         if _globally_valid(lat_c, lon_c):
             return lat_c, lon_c
 
-    _LOGGER.debug("无法解析坐标: %s / %s", latitude, longitude)
+    _LOGGER.debug("Cannot parse coordinates: %s / %s", latitude, longitude)
     return None, None
 
 
@@ -819,8 +819,8 @@ def extract_vehicle_meta(payload: Any) -> dict[str, Any]:
 # offline, so it wins over the trim.  Codes we do not know keep whatever the
 # backend sent, so a new model still shows something sensible.
 _SERIES_DISPLAY_NAMES = {
-    "bx1e": "极氪 X",
-    "dc1e": "极氪 001",
+    "bx1e": "Zeekr X",
+    "dc1e": "Zeekr 001",
 }
 
 # ``"四座后驱版-001"`` / ``"YOU版-013"`` / ``"X (001)"`` -> drop the trailing

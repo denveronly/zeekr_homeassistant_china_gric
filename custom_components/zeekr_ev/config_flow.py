@@ -70,8 +70,8 @@ REGIONS = ["+86", "+852", "+853", "+886"]
 #: are written here rather than in the translations file (a ``vol.In(dict)``
 #: shows its values, not a translatable key).
 LOGIN_METHODS = {
-    AUTH_METHOD_SMS: "短信验证码（只能看车辆状态，不能控车）",
-    AUTH_METHOD_GRIC: "GRIC 令牌（看状态 + 控车，推荐）",
+    AUTH_METHOD_SMS: "SMS code (status only, no control)",
+    AUTH_METHOD_GRIC: "GRIC token (status + control, recommended)",
 }
 
 
@@ -177,16 +177,16 @@ class ZeekrEVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(self._phone)
         self._abort_if_unique_id_configured()
 
-        title = f"极氪 · {self._phone}"
+        title = f"Zeekr · {self._phone}"
         plate = next(
             (v.meta.get("plate") for v in vehicles if v.meta.get("plate")), None
         )
         if plate:
-            title = f"极氪 {plate}"
+            title = f"Zeekr {plate}"
 
         if not vehicles:
             _LOGGER.warning(
-                "登录成功但暂时未获取到车辆，集成会持续重试列表接口。"
+                "Logged in but no vehicle returned yet; the integration will keep retrying."
             )
 
         return self.async_create_entry(title=title, data=data)
@@ -234,7 +234,7 @@ class ZeekrEVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(unique)
         self._abort_if_unique_id_configured()
 
-        title = "极氪 (GRIC)"
+        title = "Zeekr (GRIC)"
         plate = next(
             (v.meta.get("plate") for v in vehicles if v.meta.get("plate")), None
         )
@@ -242,12 +242,12 @@ class ZeekrEVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             (v.meta.get("nickname") for v in vehicles if v.meta.get("nickname")), None
         )
         if plate:
-            title = f"极氪 {plate}"
+            title = f"Zeekr {plate}"
         elif nickname:
-            title = f"极氪 {nickname}"
+            title = f"Zeekr {nickname}"
 
         if not vehicles:
-            _LOGGER.warning("GRIC 登录成功但账号下未返回车辆，集成会继续重试。")
+            _LOGGER.warning("GRIC login OK but no vehicle on this account yet; will keep retrying.")
 
         return self.async_create_entry(title=title, data=data)
 
@@ -353,9 +353,9 @@ class ZeekrEVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     errors["base"] = "gric_refresh_failed"
                     if not self._detail:
                         self._detail = (
-                            "refreshToken 被服务端拒绝或已失效。"
-                            "请注意：令牌会轮换，同一会话只有最后持有者有效，"
-                            "再次使用时请粘贴 App 里最新的那条。"
+                            "refreshToken was rejected or has expired. "
+                            "Note: tokens rotate and only the latest holder of a session is valid; "
+                            "paste the newest one from the app."
                         )
                 else:
                     # The token is good.  Whether the identifier is right can
@@ -374,8 +374,8 @@ class ZeekrEVConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         return await self._async_finish_gric(client)
                     errors["base"] = "gric_identifier_failed"
                     self._detail = detail or (
-                        "无法读取车况。请确认 x-vehicle-identifier 是本车的值，"
-                        "并且该账号在 App 里确实能控制这台车。"
+                        "Could not read vehicle status. Check that x-vehicle-identifier belongs to this car "
+                        "and that this account can control the car in the app."
                     )
 
         return self._show(
@@ -459,11 +459,11 @@ class ZeekrEVOptionsFlow(config_entries.OptionsFlow):
         that mysteriously does nothing.
         """
         if _entry_auth_method(self.config_entry) == AUTH_METHOD_GRIC:
-            return "当前配置项使用 GRIC 令牌通道：可以读取车辆状态，也可以下发控制指令。"
+            return "This entry uses the GRIC token channel: status and control commands are available."
         return (
-            "⚠️ 当前配置项使用短信验证码通道：只能读取车辆状态，不能控车 —— "
-            "下发指令的接口会被网关拒绝（079001），所以下面的「允许下发控制指令」"
-            "对它无效。需要控车请改用 GRIC 令牌通道。"
+            "⚠️ This entry uses the SMS channel: status only, no control — "
+            "the gateway rejects command interfaces (079001), so 'Allow control commands' below "
+            "has no effect. Use the GRIC token channel for control."
         )
 
     def _options_schema(self) -> vol.Schema:
@@ -478,7 +478,7 @@ class ZeekrEVOptionsFlow(config_entries.OptionsFlow):
         try:
             return self._build_options_schema()
         except Exception:  # noqa: BLE001 - never 500 the dialog
-            _LOGGER.exception("选项表单构建失败，已退回精简版")
+            _LOGGER.exception("Options form failed to build, falling back to a minimal version")
             return self._build_options_schema(full=False)
 
     def _build_options_schema(self, *, full: bool = True) -> vol.Schema:

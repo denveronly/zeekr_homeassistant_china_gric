@@ -63,7 +63,7 @@ async def async_setup_entry(
 class ZeekrDepartureTime(ZeekrEntity, DateTimeEntity, RestoreEntity):
     """Scheduled departure time used by the travel plan."""
 
-    _attr_name = "预约出发时间"
+    _attr_name = "Scheduled departure time"
     _attr_icon = "mdi:clock-start"
 
     def __init__(self, coordinator: ZeekrCoordinator, vin: str) -> None:

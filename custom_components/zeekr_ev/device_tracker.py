@@ -33,7 +33,7 @@ async def async_setup_entry(
 class ZeekrDeviceTracker(ZeekrEntity, TrackerEntity):
     """GPS tracker for a vehicle."""
 
-    _attr_name = "位置"
+    _attr_name = "Location"
     _attr_icon = "mdi:car-connected"
 
     def __init__(self, coordinator: ZeekrCoordinator, vin: str) -> None:

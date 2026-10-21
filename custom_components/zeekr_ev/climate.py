@@ -51,7 +51,7 @@ async def async_setup_entry(
 class ZeekrClimate(ZeekrEntity, ClimateEntity, RestoreEntity):
     """Cabin air conditioning / pre-conditioning."""
 
-    _attr_name = "空调"
+    _attr_name = "Climate"
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
@@ -174,7 +174,7 @@ class ZeekrClimate(ZeekrEntity, ClimateEntity, RestoreEntity):
     def preset_mode(self) -> str:
         """Which of the App's quick modes is in effect.
 
-        Held on the coordinator so the 极速降温 / 极速升温 buttons and this
+        Held on the coordinator so the Rapid cooling / Rapid heating buttons and this
         entity cannot disagree.
         """
         return self.coordinator.climate_preset(self.vin)
@@ -228,7 +228,7 @@ class ZeekrClimate(ZeekrEntity, ClimateEntity, RestoreEntity):
         elif hvac_mode == HVACMode.OFF:
             await self.coordinator.async_set_climate(self.vin, enabled=False)
         else:
-            _LOGGER.warning("不支持的空调模式: %s", hvac_mode)
+            _LOGGER.warning("Unsupported HVAC mode: %s", hvac_mode)
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Switch between the App's quick cool / quick heat and normal cooling.
@@ -240,7 +240,7 @@ class ZeekrClimate(ZeekrEntity, ClimateEntity, RestoreEntity):
         """
         if preset_mode not in (PRESET_STANDARD, PRESET_QUICK_COOL,
                                PRESET_QUICK_HEAT):
-            _LOGGER.warning("不支持的空调预设: %s", preset_mode)
+            _LOGGER.warning("Unsupported climate preset: %s", preset_mode)
             return
         setpoint = preset_setpoint(preset_mode)
         if setpoint is not None:

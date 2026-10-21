@@ -134,10 +134,10 @@ def _async_guard_against_duplicate_account(
             # The other entry is broken/disabled; this one takes over.
             continue
         raise ConfigEntryError(
-            "检测到重复的极氪配置项"
-            f"「{other.title}」（{other.entry_id}），它与本配置项登录的是同一个账号。"
-            "两者的实体唯一 ID 会冲突，导致位置等实体长期显示“不可用”。"
-            "请到「设置 → 设备与服务 → 极氪」删除多余的配置项后重启 "
+            "Duplicate Zeekr config entry detected"
+            f"「{other.title}」（{other.entry_id}），is logged into the same account as this entry. "
+            "Their entity unique IDs collide, leaving entities such as location 'unavailable'. "
+            "Delete the extra entry in Settings → Devices & services → Zeekr and restart "
             "Home Assistant。"
         )
 
@@ -174,12 +174,12 @@ def _async_guard_against_shared_vehicles(
         for other in hass.config_entries.async_entries(DOMAIN)
     }
     raise ConfigEntryError(
-        f"车辆 {', '.join(shared)} 已经由配置项"
-        f"「{titles.get(owner_id, owner_id)}」（{owner_id}）提供实体。"
-        "同一辆车只能交给一个配置项：实体唯一 ID 是按车辆生成的，两个配置项会"
-        "争抢同一组 ID，后者的实体会被 Home Assistant 忽略并长期显示“不可用”。"
-        "如果本配置项是要换用另一个账号，请先到「设置 → 设备与服务 → 极氪」"
-        "删除上面那个配置项，再重新添加。"
+        f"Vehicle {', '.join(shared)} is already provided by config entry"
+        f"「{titles.get(owner_id, owner_id)}」（{owner_id}）provides its entities. "
+        "A car can belong to only one config entry: unique IDs are per car, so two entries "
+        "fight over the same IDs and the second one's entities stay 'unavailable'. "
+        "To switch accounts, first go to Settings → Devices & services → Zeekr, "
+        "delete the entry above, then add it again."
     )
 
 
@@ -214,7 +214,7 @@ def _async_purge_hidden_entities(hass: HomeAssistant, entry: ConfigEntry,
             # ``unique_id`` is "<vin>_<key>"; the key itself contains
             # underscores, so match on the VIN prefix rather than splitting.
             if unique_id.startswith(prefix) and unique_id[len(prefix):] in hidden:
-                _LOGGER.debug("移除本车没有的功能实体: %s", entity.entity_id)
+                _LOGGER.debug("Removing entities for features this car lacks: %s", entity.entity_id)
                 registry.async_remove(entity.entity_id)
                 break
 
@@ -241,7 +241,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as err:  # noqa: BLE001 - re-raised as ConfigEntryNotReady
         if isinstance(err, (ConfigEntryNotReady, HomeAssistantError)):
             raise
-        raise ConfigEntryNotReady(f"初始化极氪账户失败: {err}") from err
+        raise ConfigEntryNotReady(f"Failed to initialise Zeekr account: {err}") from err
 
     try:
         _async_guard_against_shared_vehicles(hass, entry, coordinator)
@@ -294,8 +294,8 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     if looks_like_email:
         _LOGGER.error(
-            "配置项 %s 使用已移除的邮箱登录方式。邮箱登录在中国大陆不可用，"
-            "请删除该配置项后使用手机号短信验证码重新添加。",
+            "Config entry %s uses the removed e-mail login. E-mail login is not available in mainland China; "
+            "delete it and re-add it with SMS login.",
             entry.entry_id,
         )
         return False
@@ -337,7 +337,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
             if isinstance(coord, ZeekrCoordinator) and (not entry_id or eid == entry_id)
         ]
         if not targets:
-            raise HomeAssistantError("未找到匹配的极氪配置项")
+            raise HomeAssistantError("No matching Zeekr config entry found")
         for coordinator in targets:
             await coordinator.async_force_discovery()
 
@@ -359,7 +359,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
                 }
             result[eid] = dump
         if not result:
-            raise HomeAssistantError("未找到匹配的极氪配置项")
+            raise HomeAssistantError("No matching Zeekr config entry found")
         return result
 
     async def _service_set_climate(call: ServiceCall) -> dict:
@@ -381,7 +381,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
             duration = int(duration)
             if not MIN_DURATION <= duration <= MAX_DURATION:
                 raise HomeAssistantError(
-                    f"duration 需在 {MIN_DURATION}–{MAX_DURATION} 分钟之间，收到 {duration}"
+                    f"duration must be between {MIN_DURATION}–{MAX_DURATION} minutes, got {duration}"
                 )
 
         results: dict[str, dict] = {}
@@ -401,7 +401,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
                     duration=duration,
                 )
         if not results:
-            raise HomeAssistantError("未找到匹配的极氪配置项或车辆")
+            raise HomeAssistantError("No matching Zeekr config entry or vehicle found")
         return results
 
     if not hass.services.has_service(DOMAIN, SERVICE_REFRESH):

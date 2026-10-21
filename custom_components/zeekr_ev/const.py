@@ -132,16 +132,16 @@ CONF_HIDDEN_ENTITIES = "hidden_entities"
 DEFAULT_HIDDEN_ENTITIES: list[str] = []
 
 HIDABLE_ENTITIES: dict[str, str] = {
-    "seat_heat_driver": "座椅 · 主驾加热",
-    "seat_heat_passenger": "座椅 · 副驾加热",
-    "seat_heat_rear_left": "座椅 · 左后加热",
-    "seat_heat_rear_right": "座椅 · 右后加热",
-    "seat_vent_driver": "座椅 · 主驾通风",
-    "seat_vent_passenger": "座椅 · 副驾通风",
-    "steering_wheel_heat": "方向盘加热",
-    "sunshade": "遮阳帘",
-    "charge_lid_lock": "充电口盖",
-    "sentry": "哨兵模式",
+    "seat_heat_driver": "Seat heating driver",
+    "seat_heat_passenger": "Seat heating passenger",
+    "seat_heat_rear_left": "Seat heating rear left",
+    "seat_heat_rear_right": "Seat heating rear right",
+    "seat_vent_driver": "Seat ventilation driver",
+    "seat_vent_passenger": "Seat ventilation passenger",
+    "steering_wheel_heat": "Steering wheel heating",
+    "sunshade": "Sunshade",
+    "charge_lid_lock": "Charge port lid",
+    "sentry": "Sentry mode",
 }
 
 # Tokens persisted in the config entry so the integration can resume

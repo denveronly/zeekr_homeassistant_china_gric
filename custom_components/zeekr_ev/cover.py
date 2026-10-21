@@ -59,7 +59,7 @@ async def async_setup_entry(
 class ZeekrSunshade(ZeekrEntity, CoverEntity):
     """Panoramic roof sunshade."""
 
-    _attr_name = "遮阳帘"
+    _attr_name = "Sunshade"
     _attr_device_class = CoverDeviceClass.BLIND
     _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
 
@@ -104,7 +104,7 @@ class ZeekrSunshade(ZeekrEntity, CoverEntity):
 class ZeekrWindows(ZeekrEntity, CoverEntity):
     """All windows as a single cover."""
 
-    _attr_name = "所有车窗"
+    _attr_name = "All windows"
     _attr_device_class = CoverDeviceClass.WINDOW
     _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
 

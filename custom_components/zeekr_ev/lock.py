@@ -40,7 +40,7 @@ async def async_setup_entry(
 class ZeekrCentralLock(ZeekrEntity, LockEntity):
     """Central locking — locks / unlocks all doors."""
 
-    _attr_name = "车门锁"
+    _attr_name = "Door lock"
     _attr_icon = "mdi:car-door-lock"
 
     def __init__(self, coordinator: ZeekrCoordinator, vin: str) -> None:
@@ -63,7 +63,7 @@ class ZeekrCentralLock(ZeekrEntity, LockEntity):
 class ZeekrChargeLidLock(ZeekrEntity, LockEntity):
     """Charge-port lid — ``locked`` means the lid is closed."""
 
-    _attr_name = "充电口盖"
+    _attr_name = "Charge port lid"
     _attr_icon = "mdi:ev-plug-type2"
 
     def __init__(self, coordinator: ZeekrCoordinator, vin: str) -> None:

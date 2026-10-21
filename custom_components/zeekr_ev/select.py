@@ -11,10 +11,10 @@ from .const import DOMAIN
 from .coordinator import ZeekrCoordinator
 from .entity import VehicleEntityManager, ZeekrEntity
 
-OPTION_OFF = "关闭"
-OPTION_1 = "1档"
-OPTION_2 = "2档"
-OPTION_3 = "3档"
+OPTION_OFF = "Off"
+OPTION_1 = "Level 1"
+OPTION_2 = "Level 2"
+OPTION_3 = "Level 3"
 OPTIONS = [OPTION_OFF, OPTION_1, OPTION_2, OPTION_3]
 
 OPTION_TO_LEVEL = {OPTION_OFF: 0, OPTION_1: 1, OPTION_2: 2, OPTION_3: 3}
@@ -28,12 +28,12 @@ LEVEL_TO_OPTION = {level: option for option, level in OPTION_TO_LEVEL.items()}
 # scattered between unrelated controls (充电…, 除霜…, 车窗…) because their
 # first characters sort all over the place.
 SEAT_SPECS = (
-    ("seat_heat_driver", "座椅 · 主驾加热", "SH.11", "heat", "fl"),
-    ("seat_heat_passenger", "座椅 · 副驾加热", "SH.19", "heat", "fr"),
-    ("seat_heat_rear_left", "座椅 · 左后加热", "SH.21", "heat", "rl"),
-    ("seat_heat_rear_right", "座椅 · 右后加热", "SH.29", "heat", "rr"),
-    ("seat_vent_driver", "座椅 · 主驾通风", "SV.11", "vent", "fl"),
-    ("seat_vent_passenger", "座椅 · 副驾通风", "SV.19", "vent", "fr"),
+    ("seat_heat_driver", "Seat heating driver", "SH.11", "heat", "fl"),
+    ("seat_heat_passenger", "Seat heating passenger", "SH.19", "heat", "fr"),
+    ("seat_heat_rear_left", "Seat heating rear left", "SH.21", "heat", "rl"),
+    ("seat_heat_rear_right", "Seat heating rear right", "SH.29", "heat", "rr"),
+    ("seat_vent_driver", "Seat ventilation driver", "SV.11", "vent", "fl"),
+    ("seat_vent_passenger", "Seat ventilation passenger", "SV.19", "vent", "fr"),
 )
 
 

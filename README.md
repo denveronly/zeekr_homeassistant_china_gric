@@ -1,3 +1,5 @@
+> **English fork** of [RexzeLu/zeekr_ha](https://github.com/RexzeLu/zeekr_ha): entity names, select options and error messages are translated to English. Install in HACS as a custom repository: `https://github.com/denveronly/zeekr_homeassistant_china_gric` (Integration). Strings matching the car's / server's Chinese replies are intentionally left unchanged.
+
 # 极氪 Zeekr EV · Home Assistant 集成
 
 把极氪汽车接进 Home Assistant。集成有两条登录通道，**能不能控车完全取决于选了哪一条**。

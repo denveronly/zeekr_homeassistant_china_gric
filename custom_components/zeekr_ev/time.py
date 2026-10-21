@@ -54,9 +54,9 @@ async def async_setup_entry(
         async_add_entities,
         lambda vin: [
             ZeekrChargeScheduleTime(coordinator, vin, "charge_start_time",
-                                    "充电开始时间", "start_time"),
+                                    "Charging start time", "start_time"),
             ZeekrChargeScheduleTime(coordinator, vin, "charge_end_time",
-                                    "充电结束时间", "end_time"),
+                                    "Charging end time", "end_time"),
         ],
     ).start()
 

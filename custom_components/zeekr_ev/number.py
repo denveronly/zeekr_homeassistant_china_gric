@@ -39,7 +39,7 @@ class ZeekrChargingLimitNumber(ZeekrEntity, RestoreNumber):
     the MRO inconsistent.
     """
 
-    _attr_name = "充电上限"
+    _attr_name = "Charge limit"
     _attr_icon = "mdi:battery-charging-high"
     _attr_native_min_value = 50
     _attr_native_max_value = 100
@@ -102,7 +102,7 @@ class ZeekrAcDurationNumber(ZeekrEntity, RestoreNumber):
     which is why it must not call ``send_command``.
     """
 
-    _attr_name = "空调运行时长"
+    _attr_name = "Climate run duration"
     _attr_icon = "mdi:timer-outline"
     _attr_native_min_value = MIN_DURATION
     _attr_native_max_value = MAX_DURATION

@@ -192,17 +192,17 @@ class ZeekrCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
         except ZeekrApiError as err:
             raise UpdateFailed(str(err)) from err
         except Exception as err:  # noqa: BLE001
-            raise UpdateFailed(f"与极氪服务通信失败: {err}") from err
+            raise UpdateFailed(f"Error communicating with Zeekr: {err}") from err
 
         if not data:
             _LOGGER.warning(
-                "未获取到任何车辆数据：账号下可能没有车辆，或列表接口暂时不可用。"
-                "集成会继续重试。"
+                "No vehicle data: the account may have no cars, or the list API is temporarily unavailable. "
+                "Will keep retrying."
             )
             if not self.client.has_gw3_token:
                 _LOGGER.warning(
-                    "同时没有 GW3 访问令牌，远程指令（车锁 / 空调等）不可用。"
-                    "原因：%s",
+                    "There is also no GW3 access token; remote commands (locks, climate…) are unavailable. "
+                    "Reason: %s",
                     self.client.gateway_summary().get("gw3_login_error"),
                 )
         self.latest_poll_time = datetime.now().isoformat()
@@ -224,7 +224,7 @@ class ZeekrCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
         interval = timedelta(minutes=minutes)
         if self.update_interval != interval:
             _LOGGER.debug(
-                "轮询间隔 %s → %s 分钟（连续 %s 次无变化）",
+                "Polling interval %s → %s min (%s polls without change)",
                 self.update_interval, interval, self._adaptive.idle_polls,
             )
             self.update_interval = interval
@@ -249,7 +249,7 @@ class ZeekrCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
         }
         if not tokens:
             return
-        _LOGGER.debug("已持久化更新的令牌字段: %s", sorted(tokens))
+        _LOGGER.debug("Persisted updated token fields: %s", sorted(tokens))
         self.hass.config_entries.async_update_entry(
             self.entry, data={**self.entry.data, **tokens}
         )
@@ -284,7 +284,7 @@ class ZeekrCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
     def _ensure_commands_enabled(self) -> None:
         if not self.commands_enabled:
             raise HomeAssistantError(
-                "指令下发已在集成选项中关闭，请到「配置 → 选项」中开启。"
+                "Control commands are disabled in the integration options; enable them under Configure → Options."
             )
 
     async def async_send_command(self, vin: str, command: str, service_id: str,
